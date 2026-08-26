@@ -1,0 +1,21 @@
+Board: root@192.168.5.20 (ATK-DLRK3588)
+Application commit: 71bbceecd65166183a2ef35b69797c79f1a32a3d
+Project-one commit: c140532b82723bdfe1396b51304f2dfe9c4c73e7
+Script: /usr/bin/verify_l1_reopen_stage1.sh /tmp/p2-stage1-l1-reopen-final 30 10
+
+FAULT_EXIT=1
+FAULT_USERSPACE_EIO=PASS
+FAULT_ERROR=VIDIOC_DQBUF visible: Input/output error
+RECOVERY_EXIT=0
+RECOVERY_VISIBLE_FRAMES=296
+RECOVERY_THERMAL_PAIRS=78
+RECOVERY_MATCHED=78
+RECOVERY_UNMATCHED_SKEW=0
+CLOSE_REOPEN=PASS
+P2_STAGE1_L1_REOPEN=PASS
+
+Post-run:
+  l1_timeout_enable=N
+  l1_timeout_ms=1000
+  l1_fault_drop_heartbeat=N
+  no p2_capture_sync process remained
