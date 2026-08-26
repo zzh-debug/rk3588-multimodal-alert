@@ -1,0 +1,10 @@
+Board: root@192.168.5.20 (ATK-DLRK3588)
+Script: /usr/bin/repeat_reopen_stage1.sh 100 /tmp/p2-stage1-reopen
+
+REOPEN_RUNS=100
+REOPEN_PASSED=100
+REOPEN_ELAPSED_S=116
+P2_STAGE1_REOPEN=PASS
+
+Post-run dmesg filter: no matching fatal/error/timeout/Oops/BUG/panic lines.
+Post-run pgrep: no p2_capture_sync process remained.
