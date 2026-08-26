@@ -163,7 +163,7 @@ bool VisibleCapture::run(
             cleanup();
             return false;
         }
-        if ((descriptor.revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+        if ((descriptor.revents & (POLLHUP | POLLNVAL)) != 0) {
             if (error != nullptr)
                 *error = "visible poll reported error revents=" +
                          std::to_string(descriptor.revents);

@@ -203,7 +203,7 @@ bool ThermalCapture::run(
             cleanup();
             return false;
         }
-        if ((descriptor.revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+        if ((descriptor.revents & (POLLHUP | POLLNVAL)) != 0) {
             if (error != nullptr)
                 *error = "thermal poll reported error revents=" +
                          std::to_string(descriptor.revents);
