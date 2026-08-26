@@ -1,0 +1,20 @@
+Board: root@192.168.5.20 (ATK-DLRK3588)
+Mount: 192.168.5.11:/home/zzh/workspace/myproject/nfs_rootfs/atk_dlrk3588 on /
+Command:
+  /usr/bin/p2_capture_sync --duration 15 --output /tmp/p2-stage1-smoke-final
+
+Observed stdout:
+  VISIBLE_DEVICE=/dev/video45
+  VISIBLE_MEDIA=/dev/media4
+  THERMAL_DEVICE=/dev/video0
+  VISIBLE_FRAMES=446
+  THERMAL_PAIRS=114
+  MATCHED=114
+  UNMATCHED_SKEW=0
+  P2_STAGE1_CAPTURE_SYNC=PASS
+  exit code 0
+
+Post-run checks:
+  Linux 5.10.209 #14, Buildroot 2021.11, NFS RootFS
+  no p2_capture_sync process remained after exit
+  application, Image and DTB hashes are recorded in summary.json
