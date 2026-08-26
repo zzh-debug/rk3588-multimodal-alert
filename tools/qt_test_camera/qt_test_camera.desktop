@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=测试相机
+Comment=QT V4L2 dual-camera test
+Exec=/usr/bin/qt_test_camera /dev/video45 /dev/v4l-subdev2 /dev/video0 3840 2160
+Icon=/usr/share/icons/qt_test_camera.png
+Terminal=false
+Type=Application
+Categories=AudioVideo;

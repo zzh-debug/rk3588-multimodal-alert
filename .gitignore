@@ -1,0 +1,39 @@
+# C/C++ and CMake build products
+/build/
+/out/
+/cmake-build-*/
+*.o
+*.a
+*.so
+*.so.*
+*.d
+*.gcda
+*.gcno
+
+# Cross-compiled helper binaries
+/tools/qt_test_camera/qt_test_camera
+
+# Captured frames, encoded streams and transient reports
+*.nv12
+*.yuv
+*.raw
+*.bmp
+*.h264
+*.h265
+*.mp4
+*.pcap
+/evidence/**/raw/
+
+# Models are distributed separately; commit manifests and hashes only
+/models/*.rknn
+/models/*.onnx
+/models/*.pt
+/models/*.pth
+
+# IDE and operating-system files
+/.vscode/
+/.idea/
+.DS_Store
+Thumbs.db
+*~
+*.swp
