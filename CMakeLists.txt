@@ -12,6 +12,7 @@ include(CTest)
 find_package(Threads REQUIRED)
 
 add_library(p2_sync STATIC
+    src/sync/event_queue.cpp
     src/sync/frame_synchronizer.cpp
 )
 target_include_directories(p2_sync PUBLIC include)

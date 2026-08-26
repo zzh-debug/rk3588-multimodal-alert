@@ -1,4 +1,5 @@
 #include "p2/sync/frame_synchronizer.hpp"
+#include "p2/sync/event_queue.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -123,6 +124,30 @@ void test_out_of_order_visible_is_sorted()
             "out-of-order visible event was not counted");
 }
 
+void test_event_queue_is_bounded_and_classifies_drops()
+{
+    p2::BoundedEventQueue queue(2);
+    queue.push(visible(1, 100));
+    queue.push(thermal(1, 110));
+    queue.push(visible(2, 120));
+
+    const auto before_pop = queue.stats();
+    require(before_pop.visible_drops == 1,
+            "event queue did not classify the evicted visible frame");
+    require(before_pop.high_watermark == 2,
+            "event queue exceeded its configured capacity");
+
+    p2::FrameEvent event;
+    require(queue.wait_pop(&event), "event queue did not return a pending event");
+    require(std::holds_alternative<p2::ThermalFrameEvent>(event),
+            "event queue evicted the wrong event");
+    queue.close();
+    require(queue.wait_pop(&event) == true,
+            "event queue did not drain its last event before close");
+    require(queue.wait_pop(&event) == false,
+            "closed event queue returned an event unexpectedly");
+}
+
 }  // namespace
 
 int main()
@@ -133,6 +158,7 @@ int main()
         test_thermal_waits_for_visible_lookahead();
         test_bounded_thermal_queue_counts_drop();
         test_out_of_order_visible_is_sorted();
+        test_event_queue_is_bounded_and_classifies_drops();
     } catch (const std::exception &error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

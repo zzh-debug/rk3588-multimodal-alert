@@ -2,6 +2,7 @@
 #include "p2/capture/thermal_capture.hpp"
 #include "p2/capture/v4l2_utils.hpp"
 #include "p2/capture/visible_capture.hpp"
+#include "p2/sync/event_queue.hpp"
 #include "p2/sync/frame_synchronizer.hpp"
 
 #include <algorithm>
@@ -20,6 +21,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 #ifndef P2_GIT_COMMIT
@@ -45,8 +47,10 @@ struct Options {
     std::string thermal;
     std::string output = "/tmp/p2-stage1";
     std::uint64_t duration_seconds = 60;
-    std::uint64_t max_skew_ms = 50;
+    std::uint64_t max_skew_ms = 25;
     std::uint64_t lookahead_ms = 20;
+    std::uint64_t consumer_delay_ms = 0;
+    std::uint64_t queue_capacity = 128;
 };
 
 class RunState {
@@ -84,6 +88,8 @@ void print_usage(const char *program)
         << "  --output DIR         report directory, default /tmp/p2-stage1\n"
         << "  --max-skew-ms MS     reject pairs beyond this skew; 0 disables\n"
         << "  --lookahead-ms MS    wait for future visible timestamps\n"
+        << "  --consumer-delay-ms  delay sync consumer for slow-consumer testing\n"
+        << "  --queue-capacity N    bounded producer queue capacity, default 128\n"
         << "  --help               show this text\n";
 }
 
@@ -128,6 +134,13 @@ bool parse_options(int argc, char **argv, Options *options)
                 return false;
         } else if (argument == "--lookahead-ms") {
             if (!parse_unsigned(value, &options->lookahead_ms))
+                return false;
+        } else if (argument == "--consumer-delay-ms") {
+            if (!parse_unsigned(value, &options->consumer_delay_ms))
+                return false;
+        } else if (argument == "--queue-capacity") {
+            if (!parse_unsigned(value, &options->queue_capacity) ||
+                options->queue_capacity == 0)
                 return false;
         } else {
             std::cerr << "unknown option: " << argument << '\n';
@@ -202,6 +215,7 @@ bool write_summary(const std::string &path, const Options &options,
                    const p2::VisibleCaptureStats &visible,
                    const p2::ThermalCaptureStats &thermal,
                    const p2::SynchronizerStats &sync,
+                   const p2::EventQueueStats &event_queue,
                    const std::vector<p2::MatchRecord> &matches,
                    std::uint64_t elapsed_ms, bool passed,
                    const std::string &error)
@@ -229,6 +243,8 @@ bool write_summary(const std::string &path, const Options &options,
            << "  \"elapsed_ms\": " << elapsed_ms << ",\n"
            << "  \"max_skew_ms\": " << options.max_skew_ms << ",\n"
            << "  \"lookahead_ms\": " << options.lookahead_ms << ",\n"
+           << "  \"consumer_delay_ms\": " << options.consumer_delay_ms << ",\n"
+           << "  \"event_queue_capacity\": " << options.queue_capacity << ",\n"
            << "  \"visible\": {\n"
            << "    \"frames\": " << visible.dqbuf_count << ",\n"
            << "    \"sequence_first\": " << visible.first_sequence << ",\n"
@@ -272,6 +288,14 @@ bool write_summary(const std::string &path, const Options &options,
            << "    \"delta_p95_ms\": " << percentile_ms(deltas, 0.95) << ",\n"
            << "    \"delta_p99_ms\": " << percentile_ms(deltas, 0.99) << ",\n"
            << "    \"delta_max_ms\": " << percentile_ms(deltas, 1.00) << "\n"
+           << "  },\n"
+           << "  \"event_queue\": {\n"
+           << "    \"pushed\": " << event_queue.pushed << ",\n"
+           << "    \"popped\": " << event_queue.popped << ",\n"
+           << "    \"visible_drops\": " << event_queue.visible_drops << ",\n"
+           << "    \"thermal_drops\": " << event_queue.thermal_drops << ",\n"
+           << "    \"high_watermark\": " << event_queue.high_watermark << ",\n"
+           << "    \"pending\": " << event_queue.pending << "\n"
            << "  }\n"
            << "}\n";
     return output.good();
@@ -323,6 +347,8 @@ int main(int argc, char **argv)
     sync_config.max_skew_ns = options.max_skew_ms * 1'000'000ULL;
     sync_config.lookahead_ns = options.lookahead_ms * 1'000'000ULL;
     p2::FrameSynchronizer synchronizer(sync_config);
+    p2::BoundedEventQueue event_queue(
+        static_cast<std::size_t>(options.queue_capacity));
 
     p2::VisibleCaptureConfig visible_config;
     visible_config.device = devices.visible;
@@ -343,7 +369,7 @@ int main(int argc, char **argv)
         visible_result = visible_capture.run(
             run_state.stop,
             [&](const p2::VisibleFrameEvent &frame) {
-                synchronizer.push_visible(frame);
+                event_queue.push(frame);
             },
             &error);
         if (!visible_result && !run_state.stop.load())
@@ -354,11 +380,30 @@ int main(int argc, char **argv)
         thermal_result = thermal_capture.run(
             run_state.stop,
             [&](const p2::ThermalFrameEvent &frame) {
-                synchronizer.push_thermal(frame);
+                event_queue.push(frame);
             },
             &error);
         if (!thermal_result && !run_state.stop.load())
             run_state.fail("thermal: " + error);
+    });
+
+    std::thread sync_thread([&]() {
+        p2::FrameEvent event;
+        while (event_queue.wait_pop(&event)) {
+            if (options.consumer_delay_ms != 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(
+                    options.consumer_delay_ms));
+            std::visit(
+                [&](const auto &frame) {
+                    using Frame = std::decay_t<decltype(frame)>;
+                    if constexpr (std::is_same_v<Frame,
+                                                 p2::VisibleFrameEvent>)
+                        synchronizer.push_visible(frame);
+                    else
+                        synchronizer.push_thermal(frame);
+                },
+                event);
+        }
     });
 
     const std::uint64_t duration_ns =
@@ -373,6 +418,8 @@ int main(int argc, char **argv)
     }
     visible_thread.join();
     thermal_thread.join();
+    event_queue.close();
+    sync_thread.join();
     synchronizer.flush();
 
     const std::uint64_t elapsed_ms =
@@ -380,6 +427,7 @@ int main(int argc, char **argv)
     const auto visible_stats = visible_capture.stats();
     const auto thermal_stats = thermal_capture.stats();
     const auto sync_stats = synchronizer.stats();
+    const auto event_queue_stats = event_queue.stats();
     const auto matches = synchronizer.matches();
     const std::string capture_error = run_state.error();
     const bool passed = capture_error.empty() && visible_result &&
@@ -395,7 +443,8 @@ int main(int argc, char **argv)
     const std::string summary_path = options.output + "/summary.json";
     if (!write_csv(csv_path, matches) ||
         !write_summary(summary_path, options, devices, visible_stats,
-                       thermal_stats, sync_stats, matches, elapsed_ms,
+                       thermal_stats, sync_stats, event_queue_stats, matches,
+                       elapsed_ms,
                        passed, capture_error)) {
         std::cerr << "failed to write reports under " << options.output << '\n';
         return EXIT_FAILURE;
@@ -405,6 +454,9 @@ int main(int argc, char **argv)
               << "THERMAL_PAIRS=" << thermal_stats.valid_pairs << '\n'
               << "MATCHED=" << sync_stats.matched << '\n'
               << "UNMATCHED_SKEW=" << sync_stats.unmatched_skew << '\n'
+              << "EVENT_QUEUE_DROPS="
+              << event_queue_stats.visible_drops + event_queue_stats.thermal_drops
+              << '\n'
               << "REPORT=" << summary_path << '\n'
               << "P2_STAGE1_CAPTURE_SYNC=" << (passed ? "PASS" : "FAIL")
               << '\n';
