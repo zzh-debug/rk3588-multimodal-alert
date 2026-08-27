@@ -40,6 +40,19 @@ bool VisibleCapture::run(
     const std::function<void(const VisibleFrameEvent &)> &on_frame,
     std::string *error)
 {
+    return run_frames(
+        stop,
+        [&on_frame](const VisibleFrameView &frame) {
+            on_frame(frame.event);
+        },
+        error);
+}
+
+bool VisibleCapture::run_frames(
+    const std::atomic<bool> &stop,
+    const std::function<void(const VisibleFrameView &)> &on_frame,
+    std::string *error)
+{
     const int fd = open(config_.device.c_str(), O_RDWR | O_NONBLOCK);
     if (fd < 0) {
         set_error(error, "open visible " + config_.device);
@@ -184,6 +197,14 @@ bool VisibleCapture::run(
             cleanup();
             return false;
         }
+        if (buffer.index >= buffers.size() ||
+            plane.data_offset > plane.bytesused ||
+            plane.data_offset > buffers[buffer.index].length) {
+            if (error != nullptr)
+                *error = "visible driver returned an invalid buffer index/offset";
+            cleanup();
+            return false;
+        }
 
         VisibleFrameEvent event;
         event.sequence = buffer.sequence;
@@ -202,7 +223,18 @@ bool VisibleCapture::run(
             ++stats_.bad_bytes_used;
         if (!has_monotonic_timestamp(buffer))
             ++stats_.missing_monotonic_timestamp;
-        on_frame(event);
+        const std::size_t payload_size = std::min<std::size_t>(
+            static_cast<std::size_t>(plane.bytesused - plane.data_offset),
+            buffers[buffer.index].length - plane.data_offset);
+        VisibleFrameView frame;
+        frame.event = event;
+        frame.data = static_cast<const std::uint8_t *>(
+            buffers[buffer.index].address) + plane.data_offset;
+        frame.size = payload_size;
+        frame.width = stats_.width;
+        frame.height = stats_.height;
+        frame.bytes_per_line = stats_.bytes_per_line;
+        on_frame(frame);
 
         if (ioctl_retry(fd, VIDIOC_QBUF, &buffer) < 0) {
             set_error(error, "VIDIOC_QBUF visible recycle");

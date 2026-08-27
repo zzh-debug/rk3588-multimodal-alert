@@ -39,6 +39,10 @@ public:
     bool run(const std::atomic<bool> &stop,
              const std::function<void(const VisibleFrameEvent &)> &on_frame,
              std::string *error);
+    bool run_frames(
+        const std::atomic<bool> &stop,
+        const std::function<void(const VisibleFrameView &)> &on_frame,
+        std::string *error);
     const VisibleCaptureStats &stats() const { return stats_; }
 
 private:

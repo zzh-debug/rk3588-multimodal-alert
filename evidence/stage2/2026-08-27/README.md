@@ -19,6 +19,7 @@
 | AArch64映射探针 | SHA-256 `ab4fe6faf006a2b559bb6e7bf3c341e0c26c918343f37e1be27c2fd7c1d6de8d` |
 | AArch64拟合工具 | SHA-256 `7f609b0044dae47d314118d9f3ed63484b3cf08ae8b46aa6e75b5b900bcb31c9` |
 | Melexis数据手册 | Revision 11，SHA-256 `378f5a67b246dbce788facbf5858b3187dea13f789f1ff6361d2ae04ce6a35af` |
+| 热相机型号 | Waveshare D110，对应`MLX90640-ESF-BAA`、110°×75°；识别记录见`model-and-mounting-identification.md` |
 
 `raw/`中的EEPROM与ZMLX二进制属于设备私有黄金输入，被Git忽略。报告和本文只记录
 哈希；公开仓库前仍需复核是否适合发布设备校准数据。
@@ -35,7 +36,7 @@
 | `p21-regression-summary.json` | `ThermalCapture`扩展后的P2.1双路采集回归 |
 | `realtime-processing-600.json` | 精确绑定`22e9e07b3651`的温度数学、时域滤波和伪彩600对板端连续性报告 |
 | `cross-spectral-synthetic-aarch64.json` | 精确绑定`3501809f3003`的AArch64合成区域映射正向烟测，不是物理标定结果 |
-| `cross-spectral-uncalibrated-rejected.json` | 未标定/未确认型号模板在板端被拒绝的反向门禁 |
+| `cross-spectral-uncalibrated-rejected.json` | 历史未标定/未确认型号模板在板端被拒绝的反向门禁；当前模板已填D110/BAA，但仍因`uncalibrated`被拒绝 |
 | `cross-spectral-synthetic-aarch64.conf` | 板端由6组合成点生成的配置，仅验证拟合/序列化路径 |
 
 ## 再生成命令
@@ -83,7 +84,7 @@ p2_cross_spectral_probe \
 
 - 结果证明真实数据可解析、全部温度输出有限、坏点修复有效且实时管线连续；
 - 没有参考温度计或黑体，不能据此声明绝对测温误差；
-- 精确FOV、固定支架和跨光谱靶尚未确认，本轮不声明区域映射精度；
+- D110/BAA与110°×75°FOV已确认，但真实跨光谱靶、机械基线和独立验证误差尚未完成，本轮不声明区域映射精度；
 - 时域滤波只证明有界状态、时间语义、平滑效果和处理开销；默认参数仍需按最终场景权衡噪声与响应延迟；
 - 伪彩使用固定温区保证跨帧可比，不等于完成显示端缩放、OSD或跨光谱映射。
-- P2.2.3提交的映射证据全部为合成几何，只证明软件与AArch64执行路径；在真实型号、支架、靶和独立验证点缺失时不得声明区域映射精度。
+- P2.2.3提交的映射证据全部为合成几何，只证明软件与AArch64执行路径；在机械基线、真实靶和独立验证点缺失时不得声明区域映射精度。

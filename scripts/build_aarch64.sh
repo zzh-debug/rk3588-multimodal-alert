@@ -17,7 +17,8 @@ for binary in \
     p2_capture_sync \
     p2_thermal_export \
     p2_thermal_math_probe \
-    p2_thermal_realtime_probe
+    p2_thermal_realtime_probe \
+    p2_calibration_capture
 do
     file "$build_dir/$binary"
 done

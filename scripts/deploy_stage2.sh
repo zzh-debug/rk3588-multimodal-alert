@@ -5,7 +5,7 @@ set -eu
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 build_dir=${P2_AARCH64_BUILD_DIR:-"$repo_dir/build/aarch64"}
 rootfs=${P2_NFS_ROOTFS:-/rk3588_dev/nfs_rootfs/atk_dlrk3588}
-binaries="p2_capture_sync p2_thermal_export p2_thermal_math_probe p2_thermal_realtime_probe"
+binaries="p2_capture_sync p2_thermal_export p2_thermal_math_probe p2_thermal_realtime_probe p2_calibration_capture"
 
 [ -d "$rootfs/usr/bin" ] || {
     printf 'missing NFS RootFS: %s\n' "$rootfs" >&2

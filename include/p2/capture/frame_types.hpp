@@ -16,6 +16,18 @@ struct VisibleFrameEvent {
     std::uint32_t flags = 0;
 };
 
+// Transient view of one dequeued NV12 buffer. The data pointer is valid only
+// while the VisibleCapture callback is running; callers that need to retain a
+// frame must copy it before returning.
+struct VisibleFrameView {
+    VisibleFrameEvent event;
+    const std::uint8_t *data = nullptr;
+    std::size_t size = 0;
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::uint32_t bytes_per_line = 0;
+};
+
 struct ThermalFrameEvent {
     std::uint32_t sequence = 0;
     std::uint32_t pair_sequence = 0;

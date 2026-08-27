@@ -21,6 +21,16 @@ execute_process(
 if(NOT P2_GIT_COMMIT)
     set(P2_GIT_COMMIT "unknown")
 endif()
+execute_process(
+    COMMAND git status --porcelain --untracked-files=normal
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE P2_GIT_STATUS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(P2_GIT_STATUS AND NOT P2_GIT_COMMIT STREQUAL "unknown")
+    string(APPEND P2_GIT_COMMIT "-dirty")
+endif()
 
 add_library(p2_calibration STATIC
     src/calibration/cross_spectral.cpp
@@ -188,11 +198,32 @@ if(P2_BUILD_HARDWARE)
     target_compile_options(p2_thermal_realtime_probe PRIVATE
         -Wall -Wextra -Wpedantic -Werror
     )
+
+    add_executable(p2_calibration_capture
+        app/p2_calibration_capture.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+        src/capture/thermal_capture.cpp
+    )
+    target_include_directories(p2_calibration_capture PRIVATE include)
+    target_include_directories(p2_calibration_capture SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_calibration_capture PRIVATE
+        p2_thermal Threads::Threads
+    )
+    target_compile_definitions(p2_calibration_capture PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_calibration_capture PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
     install(TARGETS
         p2_capture_sync
         p2_thermal_export
         p2_thermal_math_probe
         p2_thermal_realtime_probe
+        p2_calibration_capture
         p2_cross_spectral_probe
         p2_calibration_fit
         RUNTIME DESTINATION bin
