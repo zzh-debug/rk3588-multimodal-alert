@@ -1,0 +1,8 @@
+# Synthetic software-path fixture; not physical calibration data.
+thermal_x,thermal_y,visible_x,visible_y
+0,0,60,80
+31,0,3780,80
+31,23,3780,2035
+0,23,60,2035
+8,6,1020,590
+24,18,2940,1610

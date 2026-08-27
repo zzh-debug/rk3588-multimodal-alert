@@ -11,6 +11,47 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest)
 find_package(Threads REQUIRED)
 
+execute_process(
+    COMMAND git rev-parse --short=12 HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE P2_GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT P2_GIT_COMMIT)
+    set(P2_GIT_COMMIT "unknown")
+endif()
+
+add_library(p2_calibration STATIC
+    src/calibration/cross_spectral.cpp
+)
+target_include_directories(p2_calibration PUBLIC include)
+target_compile_options(p2_calibration PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
+add_executable(p2_cross_spectral_probe
+    app/p2_cross_spectral_probe.cpp
+)
+target_link_libraries(p2_cross_spectral_probe PRIVATE p2_calibration)
+target_compile_definitions(p2_cross_spectral_probe PRIVATE
+    P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+)
+target_compile_options(p2_cross_spectral_probe PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
+add_executable(p2_calibration_fit
+    app/p2_calibration_fit.cpp
+)
+target_link_libraries(p2_calibration_fit PRIVATE p2_calibration)
+target_compile_definitions(p2_calibration_fit PRIVATE
+    P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+)
+target_compile_options(p2_calibration_fit PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 add_library(melexis_mlx90640 STATIC
     third_party/melexis/MLX90640_API.cpp
     src/thermal/mlx90640_i2c_disabled.cpp
@@ -65,6 +106,13 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME thermal_processing COMMAND test_thermal_processing)
+
+    add_executable(test_cross_spectral tests/test_cross_spectral.cpp)
+    target_link_libraries(test_cross_spectral PRIVATE p2_calibration)
+    target_compile_options(test_cross_spectral PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME cross_spectral_mapping COMMAND test_cross_spectral)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -81,16 +129,6 @@ if(BUILD_TESTING)
 endif()
 
 if(P2_BUILD_HARDWARE)
-    execute_process(
-        COMMAND git rev-parse --short=12 HEAD
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        OUTPUT_VARIABLE P2_GIT_COMMIT
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-    if(NOT P2_GIT_COMMIT)
-        set(P2_GIT_COMMIT "unknown")
-    endif()
     set(CAMERA_BSP_ROOT
         "${CMAKE_CURRENT_SOURCE_DIR}/../rk3588_camera_bsp"
         CACHE PATH "Path to the project-one camera BSP repository")
@@ -155,6 +193,8 @@ if(P2_BUILD_HARDWARE)
         p2_thermal_export
         p2_thermal_math_probe
         p2_thermal_realtime_probe
+        p2_cross_spectral_probe
+        p2_calibration_fit
         RUNTIME DESTINATION bin
     )
 endif()
