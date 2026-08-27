@@ -80,6 +80,8 @@ bool valid_meta(const zzh_mlx90640_meta_v1 &meta,
 
 static_assert(sizeof(zzh_mlx90640_meta_v1) == ZZH_MLX90640_META_V1_SIZE,
               "ZMLX v1 ABI size mismatch");
+static_assert(kZmlxMetaV1Bytes == ZZH_MLX90640_META_V1_SIZE,
+              "project-two ZMLX payload size mismatch");
 
 ThermalCapture::ThermalCapture(ThermalCaptureConfig config)
     : config_(std::move(config))
@@ -88,7 +90,7 @@ ThermalCapture::ThermalCapture(ThermalCaptureConfig config)
 
 bool ThermalCapture::run(
     const std::atomic<bool> &stop,
-    const std::function<void(const ThermalFrameEvent &)> &on_frame,
+    const std::function<void(const ThermalFramePayload &)> &on_frame,
     std::string *error)
 {
     const int fd = open(config_.device.c_str(), O_RDWR | O_NONBLOCK);
@@ -230,28 +232,32 @@ bool ThermalCapture::run(
         stats_.last_sequence = buffer.sequence;
         ++stats_.dqbuf_count;
 
-        ThermalFrameEvent event;
-        event.sequence = buffer.sequence;
-        event.arrival_ns = monotonic_now_ns();
+        ThermalFramePayload frame;
+        frame.event.sequence = buffer.sequence;
+        frame.event.arrival_ns = monotonic_now_ns();
         const bool buffer_index_valid = buffer.index < buffers.size();
         const bool size_valid = buffer.bytesused >= sizeof(zzh_mlx90640_meta_v1);
         const bool payload_valid = buffer_index_valid && size_valid &&
             valid_meta(*static_cast<const zzh_mlx90640_meta_v1 *>(
                            buffers[buffer.index].address),
-                       &event);
+                       &frame.event);
         if (!payload_valid) {
             ++stats_.invalid_payloads;
         } else {
+            std::memcpy(frame.zmlx_bytes.data(),
+                        buffers[buffer.index].address,
+                        frame.zmlx_bytes.size());
             if (!has_monotonic_timestamp(buffer))
                 ++stats_.missing_monotonic_timestamp;
             const std::uint64_t v4l2_timestamp = buffer_timestamp_ns(buffer);
-            const std::uint64_t delta = v4l2_timestamp >= event.second_ready_ns
-                ? v4l2_timestamp - event.second_ready_ns
-                : event.second_ready_ns - v4l2_timestamp;
+            const std::uint64_t delta =
+                v4l2_timestamp >= frame.event.second_ready_ns
+                ? v4l2_timestamp - frame.event.second_ready_ns
+                : frame.event.second_ready_ns - v4l2_timestamp;
             if (delta > 1'000'000ULL)
                 ++stats_.timestamp_mismatches;
             ++stats_.valid_pairs;
-            on_frame(event);
+            on_frame(frame);
         }
 
         if (ioctl_retry(fd, VIDIOC_QBUF, &buffer) < 0) {

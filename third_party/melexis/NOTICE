@@ -1,0 +1,20 @@
+MLX90640 calculation API
+========================
+
+Copyright (C) 2017 Melexis N.V.
+Licensed under the Apache License, Version 2.0.
+
+Source archive supplied with the Waveshare MLX90640-D110 reference material:
+  docs/参考资料/MLX90640-D110参考资料/参考源码Mlx90640-thermal_camera.zip
+
+Extracted upstream files and SHA-256 values:
+  MLX90640_API.h
+    11890c283cd9134d849d35257e0012a3a3776e9d9837b63c356f1fd98b29781f
+  MLX90640_I2C_Driver.h
+    42fce693d5424979a4906e894d07ae29ebc6cdfd8bd8cef24262aa8e47cee91b
+  MLX90640_API.cpp
+    a8d097c7bebe4f044e8e4d7eb6fe2d125eb757745b9cd8321e129bca73990dcb
+
+The three upstream files are kept byte-for-byte unchanged. Project-two code
+does not use the upstream Raspberry Pi I2C implementation; it provides disabled
+I2C symbols and supplies EEPROM/frame data through NVMEM and V4L2 instead.

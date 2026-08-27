@@ -34,7 +34,7 @@ public:
     explicit ThermalCapture(ThermalCaptureConfig config);
 
     bool run(const std::atomic<bool> &stop,
-             const std::function<void(const ThermalFrameEvent &)> &on_frame,
+             const std::function<void(const ThermalFramePayload &)> &on_frame,
              std::string *error);
     const ThermalCaptureStats &stats() const { return stats_; }
 

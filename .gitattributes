@@ -1,0 +1,4 @@
+# Preserve the vendor archive bytes (including CRLF) for hash verification.
+/third_party/melexis/MLX90640_API.cpp binary
+/third_party/melexis/MLX90640_API.h binary
+/third_party/melexis/MLX90640_I2C_Driver.h binary

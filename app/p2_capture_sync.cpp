@@ -379,8 +379,8 @@ int main(int argc, char **argv)
         std::string error;
         thermal_result = thermal_capture.run(
             run_state.stop,
-            [&](const p2::ThermalFrameEvent &frame) {
-                event_queue.push(frame);
+            [&](const p2::ThermalFramePayload &frame) {
+                event_queue.push(frame.event);
             },
             &error);
         if (!thermal_result && !run_state.stop.load())

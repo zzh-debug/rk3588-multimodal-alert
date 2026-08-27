@@ -11,6 +11,29 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest)
 find_package(Threads REQUIRED)
 
+add_library(melexis_mlx90640 STATIC
+    third_party/melexis/MLX90640_API.cpp
+    src/thermal/mlx90640_i2c_disabled.cpp
+)
+target_include_directories(melexis_mlx90640 SYSTEM PUBLIC
+    third_party/melexis
+)
+
+add_library(p2_thermal STATIC
+    src/thermal/mlx90640_math.cpp
+)
+target_include_directories(p2_thermal PUBLIC include)
+target_link_libraries(p2_thermal PUBLIC melexis_mlx90640)
+target_compile_options(p2_thermal PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
+add_executable(p2_thermal_math_probe app/p2_thermal_math_probe.cpp)
+target_link_libraries(p2_thermal_math_probe PRIVATE p2_thermal)
+target_compile_options(p2_thermal_math_probe PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 add_library(p2_sync STATIC
     src/sync/event_queue.cpp
     src/sync/frame_synchronizer.cpp
@@ -25,6 +48,26 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME frame_synchronizer COMMAND test_frame_synchronizer)
+
+    add_executable(test_mlx90640_math tests/test_mlx90640_math.cpp)
+    target_link_libraries(test_mlx90640_math PRIVATE p2_thermal)
+    target_compile_options(test_mlx90640_math PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME mlx90640_validation COMMAND test_mlx90640_math)
+    set(P2_STAGE2_GOLDEN_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
+        CACHE PATH "Private P2.2 golden input directory")
+    if(EXISTS "${P2_STAGE2_GOLDEN_DIR}/mlx90640-eeprom-be.bin" AND
+       EXISTS "${P2_STAGE2_GOLDEN_DIR}/zmlx-golden-pair.bin")
+        add_test(NAME mlx90640_golden
+            COMMAND test_mlx90640_math
+                "${P2_STAGE2_GOLDEN_DIR}/mlx90640-eeprom-be.bin"
+                "${P2_STAGE2_GOLDEN_DIR}/zmlx-golden-pair.bin")
+    else()
+        message(STATUS
+            "P2.2 private golden inputs absent; mlx90640_golden not registered")
+    endif()
 endif()
 
 if(P2_BUILD_HARDWARE)
@@ -64,5 +107,44 @@ if(P2_BUILD_HARDWARE)
     target_compile_options(p2_capture_sync PRIVATE
         -Wall -Wextra -Wpedantic -Werror
     )
-    install(TARGETS p2_capture_sync RUNTIME DESTINATION bin)
+
+    add_executable(p2_thermal_export
+        app/p2_thermal_export.cpp
+        src/capture/device_discovery.cpp
+        src/capture/thermal_capture.cpp
+    )
+    target_include_directories(p2_thermal_export PRIVATE include)
+    target_include_directories(p2_thermal_export SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_thermal_export PRIVATE Threads::Threads)
+    target_compile_options(p2_thermal_export PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+
+    add_executable(p2_thermal_realtime_probe
+        app/p2_thermal_realtime_probe.cpp
+        src/capture/device_discovery.cpp
+        src/capture/thermal_capture.cpp
+    )
+    target_include_directories(p2_thermal_realtime_probe PRIVATE include)
+    target_include_directories(p2_thermal_realtime_probe SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_thermal_realtime_probe PRIVATE
+        p2_thermal Threads::Threads
+    )
+    target_compile_definitions(p2_thermal_realtime_probe PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_thermal_realtime_probe PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    install(TARGETS
+        p2_capture_sync
+        p2_thermal_export
+        p2_thermal_math_probe
+        p2_thermal_realtime_probe
+        RUNTIME DESTINATION bin
+    )
 endif()
