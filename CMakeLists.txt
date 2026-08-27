@@ -40,6 +40,15 @@ target_compile_options(p2_calibration PRIVATE
     -Wall -Wextra -Wpedantic -Werror
 )
 
+add_library(p2_inference_math STATIC
+    src/inference/letterbox.cpp
+    src/inference/yolov5_person.cpp
+)
+target_include_directories(p2_inference_math PUBLIC include)
+target_compile_options(p2_inference_math PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 add_executable(p2_cross_spectral_probe
     app/p2_cross_spectral_probe.cpp
 )
@@ -123,6 +132,21 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME cross_spectral_mapping COMMAND test_cross_spectral)
+
+    add_executable(test_inference_geometry
+        tests/test_inference_geometry.cpp)
+    target_link_libraries(test_inference_geometry PRIVATE p2_inference_math)
+    target_compile_options(test_inference_geometry PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME inference_geometry COMMAND test_inference_geometry)
+
+    add_executable(test_yolov5_person tests/test_yolov5_person.cpp)
+    target_link_libraries(test_yolov5_person PRIVATE p2_inference_math)
+    target_compile_options(test_yolov5_person PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME yolov5_person_postprocess COMMAND test_yolov5_person)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -147,6 +171,34 @@ if(P2_BUILD_HARDWARE)
     if(NOT EXISTS "${P2_MLX_UAPI}")
         message(FATAL_ERROR "Missing project-one ZMLX UAPI: ${P2_MLX_UAPI}")
     endif()
+
+    find_path(P2_RKNN_INCLUDE_DIR rknn_api.h
+        PATH_SUFFIXES rknn
+        REQUIRED
+    )
+    find_library(P2_RKNN_LIBRARY NAMES rknnrt REQUIRED)
+    find_path(P2_RGA_INCLUDE_DIR im2d.h
+        PATH_SUFFIXES rga
+        REQUIRED
+    )
+    find_library(P2_RGA_LIBRARY NAMES rga REQUIRED)
+
+    add_library(p2_person_detector STATIC
+        src/inference/rknn_person_detector.cpp
+    )
+    target_include_directories(p2_person_detector PUBLIC include)
+    target_include_directories(p2_person_detector SYSTEM PRIVATE
+        "${P2_RKNN_INCLUDE_DIR}"
+        "${P2_RGA_INCLUDE_DIR}"
+    )
+    target_link_libraries(p2_person_detector PUBLIC p2_inference_math)
+    target_link_libraries(p2_person_detector PRIVATE
+        "${P2_RKNN_LIBRARY}"
+        "${P2_RGA_LIBRARY}"
+    )
+    target_compile_options(p2_person_detector PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
 
     add_executable(p2_capture_sync
         app/p2_capture_sync.cpp
@@ -218,6 +270,36 @@ if(P2_BUILD_HARDWARE)
     target_compile_options(p2_calibration_capture PRIVATE
         -Wall -Wextra -Wpedantic -Werror
     )
+
+    add_executable(p2_person_detect
+        app/p2_person_detect.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+    )
+    target_include_directories(p2_person_detect PRIVATE include)
+    target_include_directories(p2_person_detect SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_person_detect PRIVATE
+        p2_person_detector Threads::Threads
+    )
+    target_compile_definitions(p2_person_detect PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_person_detect PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+
+    add_executable(p2_person_detect_nv12
+        app/p2_person_detect_nv12.cpp
+    )
+    target_link_libraries(p2_person_detect_nv12 PRIVATE p2_person_detector)
+    target_compile_definitions(p2_person_detect_nv12 PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_person_detect_nv12 PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
     install(TARGETS
         p2_capture_sync
         p2_thermal_export
@@ -226,6 +308,8 @@ if(P2_BUILD_HARDWARE)
         p2_calibration_capture
         p2_cross_spectral_probe
         p2_calibration_fit
+        p2_person_detect
+        p2_person_detect_nv12
         RUNTIME DESTINATION bin
     )
 endif()

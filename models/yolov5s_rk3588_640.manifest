@@ -1,0 +1,24 @@
+schema=p2.rknn-model-manifest.v1
+name=yolov5s-640-640
+task=COCO object detection; project decodes class 0 person only
+target_soc=RK3588
+repository_binary_policy=manifest-only
+sdk_relative_path=external/rknpu2/examples/rknn_yolov5_demo/model/RK3588/yolov5s-640-640.rknn
+deployed_path=/usr/share/p2/models/yolov5s-640-640.rknn
+size_bytes=8357380
+sha256=7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71
+sdk_rknpu2_commit=dbf5d0775d5e65af8652030ead760c71c39f134a
+source=https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5
+source_declared_license=Apache-2.0
+source_note=SDK README identifies rknn_model_zoo as the model source; redistribution must be reviewed again before making this private repository public
+input_layout=NHWC
+input_type=INT8 affine model tensor; application feeds UINT8 RGB with pass_through=0
+input_color=RGB
+input_shape=1,640,640,3
+input_padding_value=114
+quantization=INT8 affine asymmetric outputs
+output_layout=NCHW
+output_contract=three tensors, 255 channels, strides 8/16/32, CPU decode and NMS
+class_policy=decode COCO class 0 person only
+confidence_threshold=0.25
+nms_iou_threshold=0.45
