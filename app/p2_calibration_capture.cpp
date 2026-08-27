@@ -44,7 +44,7 @@ struct Options {
     std::string output = "/tmp/p2-calibration-capture";
     std::uint64_t samples = 1;
     std::uint64_t interval_ms = 500;
-    std::uint64_t max_skew_ms = 50;
+    std::uint64_t max_skew_ms = 100;
     std::uint64_t timeout_seconds = 30;
     float emissivity = 0.95F;
     float reflected_offset_c = -8.0F;
@@ -74,7 +74,7 @@ void usage(const char *program)
         << "  --output DIR            output directory\n"
         << "  --samples N             number of sample pairs, default 1\n"
         << "  --interval-ms N         minimum thermal interval, default 500\n"
-        << "  --max-skew-ms N         maximum following-frame skew, default 50\n"
+        << "  --max-skew-ms N         maximum following-frame skew, default 100\n"
         << "  --timeout-sec N         whole capture timeout, default 30\n"
         << "  --emissivity VALUE      default 0.95\n"
         << "  --reflected-offset-c V  default -8\n"
@@ -428,6 +428,9 @@ bool write_sample_manifest(const std::string &path,
            << sample.thermal.event.timestamp_ns << ",\n"
            << "  \"signed_visible_minus_thermal_ns\": "
            << sample.signed_skew_ns << ",\n"
+           << "  \"capture_strategy\": \"first visible frame dequeued after a complete thermal pair\",\n"
+           << "  \"thermal_subpage_span_ns\": "
+           << sample.thermal_math.subpage_span_ns << ",\n"
            << "  \"maximum_allowed_skew_ms\": "
            << options.max_skew_ms << ",\n"
            << "  \"emissivity\": " << options.emissivity << ",\n"
