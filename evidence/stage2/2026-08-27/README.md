@@ -18,6 +18,8 @@
 | P2.2.3应用提交 | `3501809f3003e5955a32a3a50139456e0ef8fc6d` |
 | AArch64映射探针 | SHA-256 `ab4fe6faf006a2b559bb6e7bf3c341e0c26c918343f37e1be27c2fd7c1d6de8d` |
 | AArch64拟合工具 | SHA-256 `7f609b0044dae47d314118d9f3ed63484b3cf08ae8b46aa6e75b5b900bcb31c9` |
+| P2.2.3采集工具提交 | `1b791c38a3db` |
+| AArch64标定采集工具 | SHA-256 `c69c3bb9190a48ba78b90d86adc0d612c7ad5c0a6d68cd1195dac2ab866f60db` |
 | Melexis数据手册 | Revision 11，SHA-256 `378f5a67b246dbce788facbf5858b3187dea13f789f1ff6361d2ae04ce6a35af` |
 | 热相机型号 | Waveshare D110，对应`MLX90640-ESF-BAA`、110°×75°；识别记录见`model-and-mounting-identification.md` |
 
@@ -38,6 +40,7 @@
 | `cross-spectral-synthetic-aarch64.json` | 精确绑定`3501809f3003`的AArch64合成区域映射正向烟测，不是物理标定结果 |
 | `cross-spectral-uncalibrated-rejected.json` | 历史未标定/未确认型号模板在板端被拒绝的反向门禁；当前模板已填D110/BAA，但仍因`uncalibrated`被拒绝 |
 | `cross-spectral-synthetic-aarch64.conf` | 板端由6组合成点生成的配置，仅验证拟合/序列化路径 |
+| `calibration-capture-smoke-aarch64.json` | 精确绑定`1b791c38a3db`的真实双路单样本采集烟测摘要；原始帧不提交 |
 
 ## 再生成命令
 

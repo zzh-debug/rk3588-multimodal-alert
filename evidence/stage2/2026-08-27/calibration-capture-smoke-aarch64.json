@@ -1,0 +1,57 @@
+{
+  "schema": "p2.calibration-capture-evidence.v1",
+  "result": "PASS",
+  "date": "2026-08-27",
+  "application_commit": "1b791c38a3db",
+  "project_one_commit": "c140532b82723bdfe1396b51304f2dfe9c4c73e7",
+  "kernel": "Linux 5.10.209",
+  "thermal_model": "MLX90640-ESF-BAA",
+  "expected_fov_degrees": [110.0, 75.0],
+  "binary_sha256": "c69c3bb9190a48ba78b90d86adc0d612c7ad5c0a6d68cd1195dac2ab866f60db",
+  "capture": {
+    "strategy": "first visible frame dequeued after a complete thermal pair",
+    "captured_samples": 1,
+    "skew_rejections": 0,
+    "visible_device": "/dev/video45",
+    "thermal_device": "/dev/video0",
+    "visible_width": 3840,
+    "visible_height": 2160,
+    "visible_source_stride": 3840,
+    "thermal_width": 32,
+    "thermal_height": 24,
+    "finite_temperature_pixels": 768,
+    "signed_visible_minus_thermal_ns": 62615035,
+    "thermal_subpage_span_ns": 63585090,
+    "maximum_allowed_skew_ms": 100,
+    "ambient_temperature_c": 31.037552,
+    "scene_min_c": 23.382685,
+    "scene_max_c": 30.203547
+  },
+  "uncommitted_raw_artifacts": [
+    {
+      "name": "visible-y.pgm",
+      "bytes": 8294417,
+      "sha256": "365cd1fb4075c20f5468424160fd5a8e4906fa246baeef46e4dd8915b95ba4bf"
+    },
+    {
+      "name": "thermal-temperature.csv",
+      "bytes": 7864,
+      "sha256": "d2f0846bbbd11b00a008497fab518aa7c3025b2f95583f8e2f8602d2862a7567"
+    },
+    {
+      "name": "thermal-colormap.ppm",
+      "bytes": 2317,
+      "sha256": "db6385bfd4c47cad53c9d960306a8e6e96c8a69499fa763472c846afa2e1751e"
+    },
+    {
+      "name": "thermal-zmlx.bin",
+      "bytes": 3400,
+      "sha256": "b7ea3d27c2519054b48f33027789683dcd477b8b09ca5346ba704d1fe7dcae4f"
+    }
+  ],
+  "scope": [
+    "proves AArch64 capture format, finite thermal math, timing manifest and overlapping scene",
+    "does not contain a cross-spectral target",
+    "does not prove a physical homography or mapping accuracy"
+  ]
+}
