@@ -21,6 +21,8 @@ target_include_directories(melexis_mlx90640 SYSTEM PUBLIC
 
 add_library(p2_thermal STATIC
     src/thermal/mlx90640_math.cpp
+    src/thermal/temporal_filter.cpp
+    src/thermal/colormap.cpp
 )
 target_include_directories(p2_thermal PUBLIC include)
 target_link_libraries(p2_thermal PUBLIC melexis_mlx90640)
@@ -55,6 +57,14 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME mlx90640_validation COMMAND test_mlx90640_math)
+
+    add_executable(test_thermal_processing
+        tests/test_thermal_processing.cpp)
+    target_link_libraries(test_thermal_processing PRIVATE p2_thermal)
+    target_compile_options(test_thermal_processing PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME thermal_processing COMMAND test_thermal_processing)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
