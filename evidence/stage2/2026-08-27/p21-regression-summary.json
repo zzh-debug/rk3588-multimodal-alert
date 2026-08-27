@@ -1,0 +1,61 @@
+{
+  "schema": "p2.capture-sync.v1",
+  "result": "PASS",
+  "error": "",
+  "application_commit": "89dc9268e588",
+  "project_one_commit": "c140532b82723bdfe1396b51304f2dfe9c4c73e7",
+  "zmlx_header_sha256": "241058cbb9c56224a2b055134302bc85776c2b06dd7e375c85f3c03e5a54cea4",
+  "visible_device": "/dev/video45",
+  "visible_media": "/dev/media4",
+  "thermal_device": "/dev/video0",
+  "requested_duration_s": 15,
+  "elapsed_ms": 15214,
+  "max_skew_ms": 25,
+  "lookahead_ms": 20,
+  "consumer_delay_ms": 0,
+  "event_queue_capacity": 128,
+  "visible": {
+    "frames": 446,
+    "sequence_first": 0,
+    "sequence_last": 445,
+    "sequence_gaps": 0,
+    "bad_bytes_used": 0,
+    "missing_monotonic": 0,
+    "width": 3840,
+    "height": 2160,
+    "bytes_per_line": 3840,
+    "size_image": 12441600,
+    "buffers": 6
+  },
+  "thermal": {
+    "dqbuf": 114,
+    "valid_pairs": 114,
+    "sequence_gaps": 0,
+    "invalid_payloads": 0,
+    "missing_monotonic": 0,
+    "timestamp_mismatches": 0,
+    "buffer_size": 3400,
+    "buffers": 4
+  },
+  "sync": {
+    "matched": 113,
+    "unmatched_skew": 1,
+    "unmatched_no_visible": 0,
+    "thermal_queue_drops": 0,
+    "visible_history_pruned": 382,
+    "visible_high_watermark": 65,
+    "thermal_high_watermark": 1,
+    "delta_p50_ms": 7.048,
+    "delta_p95_ms": 15.299,
+    "delta_p99_ms": 16.177,
+    "delta_max_ms": 16.480
+  },
+  "event_queue": {
+    "pushed": 560,
+    "popped": 560,
+    "visible_drops": 0,
+    "thermal_drops": 0,
+    "high_watermark": 2,
+    "pending": 0
+  }
+}

@@ -1,0 +1,22 @@
+2026-08-27 P2.2.1 command summary
+
+Board EEPROM export:
+  dd if=/sys/bus/nvmem/devices/zzh_mlx90640_eeprom-5-33/nvmem of=/tmp/p2-stage2-private/mlx90640-eeprom-be.bin bs=1664 count=1
+  wc -c /tmp/p2-stage2-private/mlx90640-eeprom-be.bin
+  sha256sum /tmp/p2-stage2-private/mlx90640-eeprom-be.bin
+
+Board ZMLX golden export:
+  p2_thermal_export --output /tmp/p2-stage2-private/zmlx-golden-pair.bin
+  wc -c /tmp/p2-stage2-private/zmlx-golden-pair.bin
+  sha256sum /tmp/p2-stage2-private/zmlx-golden-pair.bin
+
+Container native verification:
+  ./scripts/build_native.sh
+  ./build/native/p2_thermal_math_probe --eeprom evidence/stage2/2026-08-27/raw/mlx90640-eeprom-be.bin --zmlx evidence/stage2/2026-08-27/raw/zmlx-golden-pair.bin
+
+Container AArch64 build:
+  ./scripts/build_aarch64.sh
+
+Board final verification at application commit 89dc9268e588:
+  p2_capture_sync --duration 15 --output /tmp/p2-stage2-p21-regression
+  p2_thermal_realtime_probe --pairs 600 --output /tmp/p2-thermal-realtime-600-final.json

@@ -13,4 +13,11 @@ cmake -S "$repo_dir" -B "$build_dir" \
     -DP2_BUILD_HARDWARE=ON \
     -DBUILD_TESTING=OFF
 cmake --build "$build_dir" --parallel
-file "$build_dir/p2_capture_sync"
+for binary in \
+    p2_capture_sync \
+    p2_thermal_export \
+    p2_thermal_math_probe \
+    p2_thermal_realtime_probe
+do
+    file "$build_dir/$binary"
+done

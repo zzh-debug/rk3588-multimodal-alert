@@ -1,0 +1,21 @@
+{
+  "schema": "p2.thermal-math.v1",
+  "result": "PASS",
+  "emissivity": 0.950000,
+  "reflected_temperature_offset_c": 0.000000,
+  "bad_pixel_correction": true,
+  "pair_sequence": 0,
+  "subpage_ids": [0, 1],
+  "subpage_span_ns": 65347007,
+  "ta_c": 33.381184,
+  "vdd": 3.334046,
+  "min_temperature_c": 26.935205,
+  "max_temperature_c": 30.252680,
+  "finite_temperature_pixels": 768,
+  "finite_image_pixels": 768,
+  "broken_pixel_count": 2,
+  "outlier_pixel_count": 0,
+  "broken_pixels": [213, 254],
+  "outlier_pixels": [],
+  "calculation_time_ns": 68880
+}
