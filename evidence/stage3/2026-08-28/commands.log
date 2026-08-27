@@ -1,0 +1,26 @@
+# Native and AArch64 builds
+./scripts/build_native.sh
+./scripts/build_aarch64.sh
+
+# Installed files were atomically replaced after confirming the board root is NFS.
+sha256sum /usr/bin/p2_person_detect \
+  /usr/bin/p2_person_detect_nv12 \
+  /usr/share/p2/models/yolov5s-640-640.rknn
+
+# Deterministic SDK sample. The raw RGA version banner was kept in the raw log;
+# the valid JSON object was extracted to p23-bus.json.
+ffmpeg -v error -y -i /tmp/bus.jpg -pix_fmt nv12 -f rawvideo \
+  /tmp/p2-bus-640x640.nv12
+/usr/bin/p2_person_detect_nv12 \
+  /usr/share/p2/models/yolov5s-640-640.rknn \
+  /tmp/p2-bus-640x640.nv12 640 640 640 0 \
+  > /tmp/p23-bus-raw.log
+tail -n +2 /tmp/p23-bus-raw.log > /tmp/p23-bus.json
+
+# Live 4K camera baseline; rotation follows the fixed vertical IMX415 mount.
+/usr/bin/p2_person_detect \
+  --duration-sec 30 \
+  --warmup 10 \
+  --json /tmp/p23-live-30s.json \
+  --detections /tmp/p23-live-30s.csv \
+  > /tmp/p23-live-30s.log

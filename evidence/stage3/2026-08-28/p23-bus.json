@@ -1,0 +1,19 @@
+{
+  "application_commit": "80346d92fc3a",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "source_width": 640,
+  "source_height": 640,
+  "rotation": "0",
+  "person_count": 4,
+  "rga_ms": 1.712,
+  "rknn_ms": 17.523,
+  "postprocess_ms": 0.103,
+  "total_ms": 22.756,
+  "persons": [
+    {"confidence": 0.880, "left": 208.790, "top": 243.013, "right": 286.520, "bottom": 509.802},
+    {"confidence": 0.871, "left": 478.981, "top": 238.629, "right": 560.204, "bottom": 527.488},
+    {"confidence": 0.828, "left": 111.793, "top": 238.116, "right": 227.909, "bottom": 534.527},
+    {"confidence": 0.300, "left": 79.626, "top": 354.499, "right": 123.040, "bottom": 518.286}
+  ]
+}

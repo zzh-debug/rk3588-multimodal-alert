@@ -1,0 +1,24 @@
+{
+  "application_commit": "80346d92fc3a",
+  "visible_device": "/dev/video45",
+  "model_path": "/usr/share/p2/models/yolov5s-640-640.rknn",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rotation": "90cw",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "model_input": {"width": 640, "height": 640, "channels": 3},
+  "capture": {"width": 3840, "height": 2160, "bytes_per_line": 3840, "dqbuf_count": 841, "sequence_gaps": 49, "bad_bytes_used": 0, "missing_monotonic_timestamp": 0},
+  "inference_frames": 841,
+  "warmup_frames": 10,
+  "measured_frames": 831,
+  "measured_elapsed_seconds": 29.481,
+  "measured_fps": 28.187,
+  "frames_with_person": 0,
+  "person_detections": 0,
+  "latency": {
+    "rga": {"p50_ms": 10.797, "p95_ms": 14.607, "p99_ms": 15.703, "max_ms": 17.259},
+    "rknn": {"p50_ms": 21.370, "p95_ms": 24.934, "p99_ms": 26.407, "max_ms": 32.695},
+    "postprocess": {"p50_ms": 0.735, "p95_ms": 1.706, "p99_ms": 2.519, "max_ms": 4.256},
+    "total": {"p50_ms": 34.185, "p95_ms": 39.648, "p99_ms": 41.616, "max_ms": 46.827}
+  }
+}

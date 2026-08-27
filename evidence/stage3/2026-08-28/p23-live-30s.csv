@@ -1,0 +1,1 @@
+sequence,timestamp_ns,confidence,left,top,right,bottom,rga_ms,rknn_ms,postprocess_ms,total_ms
