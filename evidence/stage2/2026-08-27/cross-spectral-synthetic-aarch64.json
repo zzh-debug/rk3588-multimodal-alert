@@ -1,0 +1,18 @@
+{
+  "schema": "p2.cross-spectral-probe.v1",
+  "result": "PASS",
+  "error": "",
+  "application_commit": "3501809f3003",
+  "calibration_id": "synthetic-aarch64-smoke",
+  "thermal_model": "MLX90640-ESF-BAA",
+  "expected_fov_degrees": [110.000000, 75.000000],
+  "nominal_distance_mm": 1500.000000,
+  "thermal_region_inclusive": [2, 4, 3, 5],
+  "visible_quadrilateral": [[240.000000, 377.500000], [480.000000, 377.500000], [480.000000, 547.500000], [240.000000, 547.500000]],
+  "visible_bounds": [240.000000, 377.500000, 480.000000, 547.500000],
+  "clipped_visible_bounds": [240.000000, 377.500000, 480.000000, 547.500000],
+  "intersects_visible_image": true,
+  "visible_roi_provided": true,
+  "intersection_over_thermal_area": 0.500000,
+  "minimum_overlap": 0.490000
+}

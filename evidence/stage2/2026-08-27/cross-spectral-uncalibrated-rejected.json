@@ -1,0 +1,18 @@
+{
+  "schema": "p2.cross-spectral-probe.v1",
+  "result": "FAIL",
+  "error": "calibration state is not calibrated",
+  "application_commit": "3501809f3003",
+  "calibration_id": "replace-me",
+  "thermal_model": "UNCONFIRMED",
+  "expected_fov_degrees": [0.000000, 0.000000],
+  "nominal_distance_mm": 0.000000,
+  "thermal_region_inclusive": [0, 0, 31, 23],
+  "visible_quadrilateral": [[0.000000, 0.000000], [0.000000, 0.000000], [0.000000, 0.000000], [0.000000, 0.000000]],
+  "visible_bounds": [0.000000, 0.000000, 0.000000, 0.000000],
+  "clipped_visible_bounds": [0.000000, 0.000000, 0.000000, 0.000000],
+  "intersects_visible_image": false,
+  "visible_roi_provided": false,
+  "intersection_over_thermal_area": 0.000000,
+  "minimum_overlap": 0.000000
+}
