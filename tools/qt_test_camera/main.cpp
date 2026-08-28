@@ -38,20 +38,35 @@ static inline unsigned char clamp255(int v) {
     return (unsigned char)v;
 }
 
+// 显示方向校正：IMX415 竖装，横向 NV12 需旋转 90 度后正立显示。
+// 0 = 逆时针 90（旧行为）
+// 1 = 顺时针 90（默认，校正“倒置”）
+// 2 = 逆时针 90 + 上下翻转
+// 3 = 顺时针 90 + 上下翻转
+// 若画面方向仍不对，改这里重新编译即可。
+#define ROT_MODE 1
+
 static void nv12_to_rgb_rot90(const unsigned char *nv12, int w, int h,
                               int dw, int dh, unsigned char *rgb) {
     const unsigned char *y = nv12;
     const unsigned char *uv = nv12 + w * h;
     for (int dy = 0; dy < dh; dy++) {
-        int sx = dy * w / dh;
-        const unsigned char *ycol = y + sx;
-        const unsigned char *uvcol = uv + (sx / 2) * 2;
         unsigned char *dst = rgb + dy * dw * 3;
         for (int dx = 0; dx < dw; dx++) {
-            int sy = h - 1 - dx * h / dw;
-            int Y = ycol[sy * w];
-            int U = uvcol[(sy / 2) * w] - 128;
-            int V = uvcol[(sy / 2) * w + 1] - 128;
+            int sx, sy;
+            if (ROT_MODE == 1 || ROT_MODE == 3) {
+                // 顺时针 90
+                sx = w - 1 - dy * w / dh;
+                sy = dx * h / dw;
+            } else {
+                // 逆时针 90
+                sx = dy * w / dh;
+                sy = h - 1 - dx * h / dw;
+            }
+            if (ROT_MODE == 2 || ROT_MODE == 3) sy = h - 1 - sy;  // 上下翻转
+            int Y = y[sy * w + sx];
+            int U = uv[(sy / 2) * w + (sx & ~1)] - 128;
+            int V = uv[(sy / 2) * w + (sx & ~1) + 1] - 128;
             dst[0] = clamp255(Y + ((359 * V) >> 8));
             dst[1] = clamp255(Y - ((88 * U + 183 * V) >> 8));
             dst[2] = clamp255(Y + ((454 * U) >> 8));
@@ -269,10 +284,15 @@ int main(int argc, char **argv) {
     int sw = screen->geometry().width();
     int sh = screen->geometry().height();
     int barH = 360;
-    int dw = (sh - barH) * 9 / 16;
-    int dh = sh - barH;
-    if (dw > sw) { dw = sw; dh = sw * 16 / 9; }
-    printf("screen=%dx%d disp=%dx%d\n", sw, sh, dw, dh);
+    int availW = sw;
+    int availH = sh - barH;
+    int paneW = availW / 2;
+    int paneH = availH;
+    // 相机画面横向 16:9，在左半 pane 内等比适配
+    int dw = paneW;
+    int dh = paneW * 9 / 16;
+    if (dh > paneH) { dh = paneH; dw = paneH * 16 / 9; }
+    printf("screen=%dx%d pane=%dx%d disp=%dx%d\n", sw, sh, paneW, paneH, dw, dh);
 
     QWidget win;
     win.setWindowTitle("QT V4L2 test camera");
@@ -281,7 +301,6 @@ int main(int argc, char **argv) {
     view->setStyleSheet("background-color:black;");
 
     QLabel *heat = new QLabel(&win);
-    heat->setFixedSize(300, 225);
     heat->setAlignment(Qt::AlignCenter);
     heat->setStyleSheet("background-color:black; border: 3px solid #ff8800;");
 
@@ -320,13 +339,15 @@ int main(int argc, char **argv) {
     barLay->setContentsMargins(12, 8, 12, 8); barLay->setSpacing(28);
     barLay->addLayout(row1); barLay->addLayout(row2); barLay->addLayout(row3);
 
+    QWidget *displayRow = new QWidget(&win);
+    QHBoxLayout *dispLay = new QHBoxLayout(displayRow);
+    dispLay->setContentsMargins(0, 0, 0, 0); dispLay->setSpacing(0);
+    dispLay->addWidget(view, 1); dispLay->addWidget(heat, 1);
+
     QVBoxLayout *lay = new QVBoxLayout(&win);
     lay->setContentsMargins(0, 0, 0, 0); lay->setSpacing(0);
-    lay->addWidget(view, 1); lay->addWidget(bar);
+    lay->addWidget(displayRow, 1); lay->addWidget(bar);
     win.showFullScreen();
-
-    heat->move(sw - 300 - 12, 12);
-    heat->raise();
 
     QImage img(dw, dh, QImage::Format_RGB888);
     std::vector<unsigned char> rgb((size_t)dw * dh * 3);
@@ -348,7 +369,9 @@ int main(int argc, char **argv) {
             if (midx >= 0) {
                 meta_to_heatmap((const unsigned char*)mdata, 32, 24, hrgb.data());
                 copy_rgb888_to_qimage(hmap, hrgb.data(), 32, 24);
-                heat->setPixmap(QPixmap::fromImage(hmap).scaled(300, 225, Qt::KeepAspectRatio, Qt::FastTransformation));
+                QSize hs = heat->size();
+                if (hs.width() < 2 || hs.height() < 2) hs = QSize(paneW, paneH);
+                heat->setPixmap(QPixmap::fromImage(hmap).scaled(hs, Qt::KeepAspectRatio, Qt::FastTransformation));
                 meta_qbuf(midx);
             }
         }
