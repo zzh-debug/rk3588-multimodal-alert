@@ -7,6 +7,7 @@
 #include <QWidget>
 #include <QImage>
 #include <QPixmap>
+#include <QTransform>
 #include <QScreen>
 #include <cstdio>
 #include <cstdlib>
@@ -38,32 +39,35 @@ static inline unsigned char clamp255(int v) {
     return (unsigned char)v;
 }
 
-// 显示方向校正：IMX415 竖装，横向 NV12 需旋转 90 度后正立显示。
-// 0 = 逆时针 90（旧行为）
-// 1 = 顺时针 90（默认，校正“倒置”）
-// 2 = 逆时针 90 + 上下翻转
-// 3 = 顺时针 90 + 上下翻转
-// 若画面方向仍不对，改这里重新编译即可。
-#define ROT_MODE 1
+// 显示方向校正：IMX415 竖装，整个画面需往右（顺时针）旋转。
+// ROT_ANGLE 取值 0/90/180/270（顺时针角度）。
+// FLIP_H = 1 时水平翻转（左右镜像校正）。
+// 若画面方向不对（倒置/镜像），改这里重新编译即可。
+#define ROT_ANGLE 0
+#define FLIP_H 1
 
-static void nv12_to_rgb_rot90(const unsigned char *nv12, int w, int h,
-                              int dw, int dh, unsigned char *rgb) {
+static void nv12_to_rgb_rot(const unsigned char *nv12, int w, int h,
+                            int dw, int dh, unsigned char *rgb) {
     const unsigned char *y = nv12;
     const unsigned char *uv = nv12 + w * h;
     for (int dy = 0; dy < dh; dy++) {
         unsigned char *dst = rgb + dy * dw * 3;
         for (int dx = 0; dx < dw; dx++) {
             int sx, sy;
-            if (ROT_MODE == 1 || ROT_MODE == 3) {
-                // 顺时针 90
+            if (ROT_ANGLE == 0) {
+                sx = dx * w / dw;
+                sy = dy * h / dh;
+            } else if (ROT_ANGLE == 90) {
                 sx = w - 1 - dy * w / dh;
                 sy = dx * h / dw;
-            } else {
-                // 逆时针 90
+            } else if (ROT_ANGLE == 180) {
+                sx = w - 1 - dx * w / dw;
+                sy = h - 1 - dy * h / dh;
+            } else {  // 270（逆时针 90）
                 sx = dy * w / dh;
                 sy = h - 1 - dx * h / dw;
             }
-            if (ROT_MODE == 2 || ROT_MODE == 3) sy = h - 1 - sy;  // 上下翻转
+            if (FLIP_H) sy = h - 1 - sy;  // 水平翻转（竖装下 sy 对应屏幕左右）
             int Y = y[sy * w + sx];
             int U = uv[(sy / 2) * w + (sx & ~1)] - 128;
             int V = uv[(sy / 2) * w + (sx & ~1) + 1] - 128;
@@ -286,24 +290,26 @@ int main(int argc, char **argv) {
     int barH = 360;
     int availW = sw;
     int availH = sh - barH;
-    int paneW = availW / 2;
-    int paneH = availH;
-    // 相机画面横向 16:9，在左半 pane 内等比适配
+    int paneW = availW;       // 上下分屏，每栏全宽
+    int paneH = availH / 2;   // 上下各一半
+    // 相机画面横向 16:9，等比适配上半 pane
     int dw = paneW;
     int dh = paneW * 9 / 16;
     if (dh > paneH) { dh = paneH; dw = paneH * 16 / 9; }
-    printf("screen=%dx%d pane=%dx%d disp=%dx%d\n", sw, sh, paneW, paneH, dw, dh);
+    // 红外 32x24 横向(4:3)，等比适配下半 pane
+    int hw = paneW;
+    int hh = paneW * 3 / 4;
+    if (hh > paneH) { hh = paneH; hw = paneH * 4 / 3; }
+    printf("screen=%dx%d pane=%dx%d cam=%dx%d heat=%dx%d\n", sw, sh, paneW, paneH, dw, dh, hw, hh);
 
     QWidget win;
     win.setWindowTitle("QT V4L2 test camera");
     QLabel *view = new QLabel(&win);
     view->setAlignment(Qt::AlignCenter);
-    view->setScaledContents(true);
     view->setStyleSheet("background-color:black;");
 
     QLabel *heat = new QLabel(&win);
     heat->setAlignment(Qt::AlignCenter);
-    heat->setScaledContents(true);
     heat->setStyleSheet("background-color:black; border: 3px solid #ff8800;");
 
     QSlider *exp = new QSlider(Qt::Horizontal, &win);
@@ -342,7 +348,7 @@ int main(int argc, char **argv) {
     barLay->addLayout(row1); barLay->addLayout(row2); barLay->addLayout(row3);
 
     QWidget *displayRow = new QWidget(&win);
-    QHBoxLayout *dispLay = new QHBoxLayout(displayRow);
+    QVBoxLayout *dispLay = new QVBoxLayout(displayRow);
     dispLay->setContentsMargins(0, 0, 0, 0); dispLay->setSpacing(0);
     dispLay->addWidget(view, 1); dispLay->addWidget(heat, 1);
 
@@ -361,7 +367,7 @@ int main(int argc, char **argv) {
         int idx = v4l2_dqbuf(&data, &len, &seq);
         if (idx < 0) break;
 
-        nv12_to_rgb_rot90((const unsigned char*)data, w, h, dw, dh, rgb.data());
+        nv12_to_rgb_rot((const unsigned char*)data, w, h, dw, dh, rgb.data());
         copy_rgb888_to_qimage(img, rgb.data(), dw, dh);
         view->setPixmap(QPixmap::fromImage(img));
 
@@ -371,7 +377,8 @@ int main(int argc, char **argv) {
             if (midx >= 0) {
                 meta_to_heatmap((const unsigned char*)mdata, 32, 24, hrgb.data());
                 copy_rgb888_to_qimage(hmap, hrgb.data(), 32, 24);
-                heat->setPixmap(QPixmap::fromImage(hmap));
+                QImage hrot = hmap.transformed(QTransform().rotate(90));  // 红外往右旋转90度，与相机同轴同向
+                heat->setPixmap(QPixmap::fromImage(hrot).scaled(hw, hh, Qt::KeepAspectRatio, Qt::FastTransformation));
                 meta_qbuf(midx);
             }
         }
