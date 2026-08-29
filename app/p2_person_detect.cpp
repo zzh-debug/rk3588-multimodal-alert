@@ -36,7 +36,7 @@ struct Options {
     std::uint64_t duration_seconds = 15;
     std::uint64_t maximum_frames = 0;
     std::uint64_t warmup_frames = 10;
-    p2::ImageRotation rotation = p2::ImageRotation::kClockwise90;
+    p2::ImageRotation rotation = p2::ImageRotation::kClockwise270;
     float confidence_threshold = 0.25F;
     float nms_threshold = 0.45F;
 };
@@ -66,7 +66,7 @@ void usage(const char *program)
         << "  --duration-sec N     run time, default 15\n"
         << "  --frames N           measured frame limit, 0 means duration only\n"
         << "  --warmup N           warm-up frames excluded from timing, default 10\n"
-        << "  --rotation VALUE     0, 90cw, 180 or 270cw; default 90cw\n"
+        << "  --rotation VALUE     0, 90cw, 180 or 270cw; default 270cw\n"
         << "  --confidence VALUE   person confidence threshold, default 0.25\n"
         << "  --nms VALUE          person NMS IoU threshold, default 0.45\n"
         << "  --json FILE          write summary JSON\n"

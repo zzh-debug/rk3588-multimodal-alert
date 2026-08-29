@@ -52,6 +52,25 @@ target_compile_options(p2_inference_math PRIVATE
     -Wall -Wextra -Wpedantic -Werror
 )
 
+add_library(p2_person_evaluation STATIC
+    src/evaluation/person_dataset.cpp
+    src/evaluation/person_metrics.cpp
+)
+target_include_directories(p2_person_evaluation PUBLIC include)
+target_link_libraries(p2_person_evaluation PUBLIC p2_inference_math)
+target_compile_options(p2_person_evaluation PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
+add_executable(p2_person_evaluate app/p2_person_evaluate.cpp)
+target_link_libraries(p2_person_evaluate PRIVATE p2_person_evaluation)
+target_compile_definitions(p2_person_evaluate PRIVATE
+    P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+)
+target_compile_options(p2_person_evaluate PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 add_executable(p2_cross_spectral_probe
     app/p2_cross_spectral_probe.cpp
 )
@@ -157,6 +176,15 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME yolov5_person_postprocess COMMAND test_yolov5_person)
+
+    add_executable(test_person_evaluation
+        tests/test_person_evaluation.cpp)
+    target_link_libraries(test_person_evaluation PRIVATE
+        p2_person_evaluation)
+    target_compile_options(test_person_evaluation PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME person_evaluation COMMAND test_person_evaluation)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -339,6 +367,25 @@ if(P2_BUILD_HARDWARE)
     target_compile_options(p2_person_detect_nv12 PRIVATE
         -Wall -Wextra -Wpedantic -Werror
     )
+
+    add_executable(p2_person_dataset_capture
+        app/p2_person_dataset_capture.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+    )
+    target_include_directories(p2_person_dataset_capture PRIVATE include)
+    target_include_directories(p2_person_dataset_capture SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_person_dataset_capture PRIVATE
+        p2_person_detector p2_person_evaluation Threads::Threads
+    )
+    target_compile_definitions(p2_person_dataset_capture PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_person_dataset_capture PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
     install(TARGETS
         p2_capture_sync
         p2_thermal_export
@@ -349,6 +396,8 @@ if(P2_BUILD_HARDWARE)
         p2_calibration_fit
         p2_person_detect
         p2_person_detect_nv12
+        p2_person_dataset_capture
+        p2_person_evaluate
         RUNTIME DESTINATION bin
     )
 endif()

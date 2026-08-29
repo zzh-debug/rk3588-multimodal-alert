@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>P2.3.2 人员框标注</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #111827; color: #e5e7eb; }
+    header, footer { padding: 12px 16px; display: flex; gap: 10px;
+      align-items: center; flex-wrap: wrap; background: #1f2937; }
+    button, label.file { border: 0; border-radius: 6px; padding: 9px 14px;
+      background: #374151; color: white; cursor: pointer; font-size: 14px; }
+    button.primary { background: #2563eb; }
+    button.good { background: #047857; }
+    button.warn { background: #b45309; }
+    button:disabled { opacity: .45; cursor: default; }
+    input[type=file] { display: none; }
+    main { height: calc(100vh - 128px); display: grid; place-items: center;
+      overflow: hidden; }
+    canvas { max-width: calc(100vw - 24px); max-height: calc(100vh - 152px);
+      border: 1px solid #4b5563; touch-action: none; background: #000; }
+    #status { margin-left: auto; white-space: nowrap; }
+    .hint { color: #9ca3af; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <label class="file">选择整个 images 文件夹
+      <input id="files" type="file" accept="image/bmp,.bmp" multiple
+        webkitdirectory directory>
+    </label>
+    <label class="file">导入 predictions.csv
+      <input id="predictionFile" type="file" accept="text/csv,.csv">
+    </label>
+    <button id="previous">上一张</button>
+    <button id="next">下一张</button>
+    <button id="undo" class="warn">撤销框</button>
+    <button id="clear" class="warn">清空本图</button>
+    <button id="confirm" class="good">确认本图</button>
+    <button id="export" class="primary">导出 annotations.csv</button>
+    <span id="status">尚未载入图片</span>
+  </header>
+  <main><canvas id="canvas" width="960" height="540"></canvas></main>
+  <footer>
+    <span class="hint">先选整个images文件夹，再导入同一数据集目录中的predictions.csv。绿色框是模型建议框；确认或修正后点“确认本图”。</span>
+  </footer>
+  <script>
+    const filesInput = document.querySelector('#files');
+    const predictionInput = document.querySelector('#predictionFile');
+    const canvas = document.querySelector('#canvas');
+    const context = canvas.getContext('2d');
+    const status = document.querySelector('#status');
+    let files = [];
+    let index = 0;
+    let currentImage = null;
+    let dragStart = null;
+    let dragPoint = null;
+    const boxes = new Map();
+    const reviewed = new Set();
+    let proposalRows = 0;
+
+    function imageId(file) { return file.name.replace(/\.[^.]+$/, ''); }
+    function currentId() { return files.length ? imageId(files[index]) : ''; }
+    function currentBoxes() {
+      const id = currentId();
+      if (!boxes.has(id)) boxes.set(id, []);
+      return boxes.get(id);
+    }
+    function canvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(canvas.width,
+          (event.clientX - rect.left) * canvas.width / rect.width)),
+        y: Math.max(0, Math.min(canvas.height,
+          (event.clientY - rect.top) * canvas.height / rect.height))
+      };
+    }
+    function normalizedBox(a, b) {
+      return { left: Math.min(a.x, b.x), top: Math.min(a.y, b.y),
+        right: Math.max(a.x, b.x), bottom: Math.max(a.y, b.y) };
+    }
+    function drawBox(box, color, width = 3) {
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.strokeRect(box.left, box.top,
+        box.right - box.left, box.bottom - box.top);
+    }
+    function redraw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      if (currentImage) context.drawImage(currentImage, 0, 0);
+      currentBoxes().forEach(box => drawBox(box, '#22c55e'));
+      if (dragStart && dragPoint)
+        drawBox(normalizedBox(dragStart, dragPoint), '#facc15', 2);
+      const confirmed = reviewed.has(currentId()) ? '已确认' : '未确认';
+      status.textContent = files.length
+        ? `${index + 1}/${files.length} ${currentId()} · ${currentBoxes().length}人 · ${confirmed} · 已确认${reviewed.size}张 · 已导入${proposalRows}个建议框`
+        : '尚未载入图片';
+    }
+    function loadCurrent() {
+      if (!files.length) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+          currentImage = image;
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          redraw();
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(files[index]);
+    }
+    function move(delta) {
+      if (!files.length) return;
+      index = Math.max(0, Math.min(files.length - 1, index + delta));
+      loadCurrent();
+    }
+
+    filesInput.addEventListener('change', () => {
+      files = [...filesInput.files].sort((a, b) => a.name.localeCompare(b.name));
+      index = 0;
+      boxes.clear();
+      reviewed.clear();
+      proposalRows = 0;
+      if (predictionInput.files.length) loadPredictions();
+      loadCurrent();
+    });
+    function loadPredictions() {
+      if (!predictionInput.files.length) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        boxes.clear();
+        reviewed.clear();
+        proposalRows = 0;
+        const lines = String(reader.result).trim().split(/\r?\n/);
+        if (lines.shift() !== 'image_id,confidence,left,top,right,bottom') {
+          alert('predictions.csv表头不正确');
+          return;
+        }
+        lines.forEach(line => {
+          if (!line) return;
+          const fields = line.split(',');
+          if (fields.length !== 6) return;
+          const values = fields.slice(2).map(Number);
+          if (values.some(value => !Number.isFinite(value))) return;
+          if (!boxes.has(fields[0])) boxes.set(fields[0], []);
+          boxes.get(fields[0]).push({left: values[0], top: values[1],
+            right: values[2], bottom: values[3]});
+          proposalRows += 1;
+        });
+        redraw();
+      };
+      reader.readAsText(predictionInput.files[0]);
+    }
+    predictionInput.addEventListener('change', loadPredictions);
+    canvas.addEventListener('pointerdown', event => {
+      if (!currentImage) return;
+      canvas.setPointerCapture(event.pointerId);
+      dragStart = canvasPoint(event);
+      dragPoint = dragStart;
+      redraw();
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (!dragStart) return;
+      dragPoint = canvasPoint(event);
+      redraw();
+    });
+    canvas.addEventListener('pointerup', event => {
+      if (!dragStart) return;
+      dragPoint = canvasPoint(event);
+      const box = normalizedBox(dragStart, dragPoint);
+      dragStart = null;
+      dragPoint = null;
+      if (box.right - box.left >= 4 && box.bottom - box.top >= 4)
+        currentBoxes().push(box);
+      redraw();
+    });
+    document.querySelector('#previous').onclick = () => move(-1);
+    document.querySelector('#next').onclick = () => move(1);
+    document.querySelector('#undo').onclick = () => {
+      currentBoxes().pop(); reviewed.delete(currentId()); redraw();
+    };
+    document.querySelector('#clear').onclick = () => {
+      boxes.set(currentId(), []); reviewed.delete(currentId()); redraw();
+    };
+    document.querySelector('#confirm').onclick = () => {
+      if (!files.length) return;
+      reviewed.add(currentId());
+      if (index + 1 < files.length) move(1); else redraw();
+    };
+    document.querySelector('#export').onclick = () => {
+      if (!files.length) return;
+      if (reviewed.size !== files.length &&
+          !confirm(`还有${files.length - reviewed.size}张未确认，仍然导出吗？`)) return;
+      const rows = ['image_id,left,top,right,bottom'];
+      files.forEach(file => (boxes.get(imageId(file)) || []).forEach(box => {
+        rows.push([imageId(file), box.left.toFixed(2), box.top.toFixed(2),
+          box.right.toFixed(2), box.bottom.toFixed(2)].join(','));
+      }));
+      const blob = new Blob([rows.join('\n') + '\n'], {type: 'text/csv'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'annotations.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+    redraw();
+  </script>
+</body>
+</html>

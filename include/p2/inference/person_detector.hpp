@@ -13,7 +13,7 @@ namespace p2 {
 
 struct PersonDetectorConfig {
     std::string model_path;
-    ImageRotation rotation = ImageRotation::kClockwise90;
+    ImageRotation rotation = ImageRotation::kClockwise270;
     float confidence_threshold = 0.25F;
     float nms_threshold = 0.45F;
     std::size_t maximum_detections = 64;

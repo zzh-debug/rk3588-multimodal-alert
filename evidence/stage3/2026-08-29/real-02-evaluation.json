@@ -1,0 +1,20 @@
+{
+  "schema": "p2.person-evaluation.v1",
+  "application_commit": "e96ade04661d-dirty",
+  "result": "PASS",
+  "confidence_threshold": 0.250000,
+  "iou_threshold": 0.500000,
+  "minimum_precision": 0.800000,
+  "minimum_recall": 0.800000,
+  "images": 45,
+  "positive_images": 6,
+  "negative_images": 39,
+  "ground_truth_instances": 6,
+  "accepted_predictions": 6,
+  "true_positives": 6,
+  "false_positives": 0,
+  "false_negatives": 0,
+  "precision": 1.000000,
+  "recall": 1.000000,
+  "f1": 1.000000
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "p2.person-dataset-capture.v1",
+  "application_commit": "e96ade04661d-dirty",
+  "complete": true,
+  "visible_device": "/dev/video45",
+  "model_path": "/usr/share/p2/models/yolov5s-640-640.rknn",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rotation": "270cw",
+  "confidence_threshold": 0.250,
+  "nms_threshold": 0.450,
+  "sample_interval_ms": 1000,
+  "requested_samples": 45,
+  "sampled_frames": 45,
+  "frames_with_person_prediction": 6,
+  "person_predictions": 6,
+  "preview_bytes": 69986430,
+  "elapsed_seconds": 44.915,
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "capture": {"width": 3840, "height": 2160, "bytes_per_line": 3840, "dqbuf_count": 1339, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_monotonic_timestamp": 0}
+}
