@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 project(rk3588_multimodal_alert VERSION 0.1.0 LANGUAGES CXX)
 
 option(P2_BUILD_HARDWARE "Build Linux V4L2 capture application" ON)
+option(P2_BUILD_CALIBRATION_GUI
+    "Build the Qt cross-spectral calibration assistant" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,6 +36,7 @@ endif()
 
 add_library(p2_calibration STATIC
     src/calibration/cross_spectral.cpp
+    src/calibration/assistant.cpp
 )
 target_include_directories(p2_calibration PUBLIC include)
 target_compile_options(p2_calibration PRIVATE
@@ -132,6 +135,13 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME cross_spectral_mapping COMMAND test_cross_spectral)
+
+    add_executable(test_calibration_assistant
+        tests/test_calibration_assistant.cpp)
+    target_link_libraries(test_calibration_assistant PRIVATE p2_calibration)
+    target_compile_options(test_calibration_assistant PRIVATE
+        -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME calibration_assistant COMMAND test_calibration_assistant)
 
     add_executable(test_inference_geometry
         tests/test_inference_geometry.cpp)
@@ -270,6 +280,35 @@ if(P2_BUILD_HARDWARE)
     target_compile_options(p2_calibration_capture PRIVATE
         -Wall -Wextra -Wpedantic -Werror
     )
+
+    if(P2_BUILD_CALIBRATION_GUI)
+        find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+        add_executable(p2_calibration_gui
+            app/p2_calibration_gui.cpp
+            src/capture/device_discovery.cpp
+            src/capture/visible_capture.cpp
+            src/capture/thermal_capture.cpp
+        )
+        target_include_directories(p2_calibration_gui PRIVATE include)
+        target_include_directories(p2_calibration_gui SYSTEM PRIVATE
+            "${CAMERA_BSP_ROOT}/include/uapi"
+        )
+        target_link_libraries(p2_calibration_gui PRIVATE
+            p2_calibration
+            p2_thermal
+            Threads::Threads
+            Qt5::Core
+            Qt5::Gui
+            Qt5::Widgets
+        )
+        target_compile_definitions(p2_calibration_gui PRIVATE
+            P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+        )
+        target_compile_options(p2_calibration_gui PRIVATE
+            -Wall -Wextra -Wpedantic -Werror
+        )
+        install(TARGETS p2_calibration_gui RUNTIME DESTINATION bin)
+    endif()
 
     add_executable(p2_person_detect
         app/p2_person_detect.cpp

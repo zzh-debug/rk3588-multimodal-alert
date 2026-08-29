@@ -19,6 +19,7 @@ for binary in \
     p2_thermal_math_probe \
     p2_thermal_realtime_probe \
     p2_calibration_capture \
+    p2_calibration_gui \
     p2_person_detect \
     p2_person_detect_nv12
 do
