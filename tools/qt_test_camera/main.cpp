@@ -298,10 +298,12 @@ int main(int argc, char **argv) {
     win.setWindowTitle("QT V4L2 test camera");
     QLabel *view = new QLabel(&win);
     view->setAlignment(Qt::AlignCenter);
+    view->setScaledContents(true);
     view->setStyleSheet("background-color:black;");
 
     QLabel *heat = new QLabel(&win);
     heat->setAlignment(Qt::AlignCenter);
+    heat->setScaledContents(true);
     heat->setStyleSheet("background-color:black; border: 3px solid #ff8800;");
 
     QSlider *exp = new QSlider(Qt::Horizontal, &win);
@@ -369,9 +371,7 @@ int main(int argc, char **argv) {
             if (midx >= 0) {
                 meta_to_heatmap((const unsigned char*)mdata, 32, 24, hrgb.data());
                 copy_rgb888_to_qimage(hmap, hrgb.data(), 32, 24);
-                QSize hs = heat->size();
-                if (hs.width() < 2 || hs.height() < 2) hs = QSize(paneW, paneH);
-                heat->setPixmap(QPixmap::fromImage(hmap).scaled(hs, Qt::KeepAspectRatio, Qt::FastTransformation));
+                heat->setPixmap(QPixmap::fromImage(hmap));
                 meta_qbuf(midx);
             }
         }
