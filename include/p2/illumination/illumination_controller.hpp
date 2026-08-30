@@ -103,6 +103,7 @@ public:
     bool update(const IlluminationObservation &observation,
                 IlluminationUpdate *update,
                 std::string *error);
+    void shutdown(IlluminationUpdate *update);
     void force_fault(IlluminationUpdate *update);
     void reset();
 

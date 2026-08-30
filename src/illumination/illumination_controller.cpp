@@ -331,6 +331,23 @@ bool IlluminationController::update(
     return true;
 }
 
+void IlluminationController::shutdown(IlluminationUpdate *update)
+{
+    const bool changed = state_ != IlluminationState::off ||
+        ramp_direction_ != RampDirection::none || brightness_ != 0U;
+    if (brightness_ > 0U)
+        ++stats_.deactivations;
+    state_ = IlluminationState::off;
+    ramp_direction_ = RampDirection::none;
+    brightness_ = 0U;
+    if (changed) {
+        ++stats_.transitions;
+        state_since_ns_ = last_timestamp_ns_;
+    }
+    if (update != nullptr)
+        fill_update(false, false, changed, update);
+}
+
 void IlluminationController::force_fault(IlluminationUpdate *update)
 {
     const bool was_active = brightness_ > 0U;

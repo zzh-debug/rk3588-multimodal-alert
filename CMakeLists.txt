@@ -526,7 +526,8 @@ if(P2_BUILD_HARDWARE)
         "${CAMERA_BSP_ROOT}/include/uapi"
     )
     target_link_libraries(p2_multimodal_fusion PRIVATE
-        p2_fusion p2_person_detector p2_streaming p2_thermal Threads::Threads
+        p2_fusion p2_person_detector p2_streaming p2_illumination_hardware
+        p2_thermal Threads::Threads
     )
     target_compile_definitions(p2_multimodal_fusion PRIVATE
         P2_GIT_COMMIT="${P2_GIT_COMMIT}"

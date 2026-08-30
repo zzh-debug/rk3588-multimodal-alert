@@ -134,6 +134,13 @@ int main()
                  "state machine statistics are auditable"))
         return EXIT_FAILURE;
 
+    controller.shutdown(&update);
+    if (!require(update.state == p2::IlluminationState::off &&
+                     update.desired_brightness == 0U &&
+                     controller.state() == p2::IlluminationState::off,
+                 "shutdown returns controller to OFF"))
+        return EXIT_FAILURE;
+
     controller.reset();
     if (!require(controller.update(observation(1, true), &update, &error),
                  "adaptive ramp pending starts") ||

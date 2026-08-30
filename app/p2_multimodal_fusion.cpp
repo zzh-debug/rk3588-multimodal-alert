@@ -6,6 +6,8 @@
 #include "p2/fusion/multimodal_fusion.hpp"
 #include "p2/fusion/temporal_joiner.hpp"
 #include "p2/inference/person_detector.hpp"
+#include "p2/illumination/illumination_controller.hpp"
+#include "p2/illumination/illumination_hardware.hpp"
 #include "p2/pipeline/bounded_queue.hpp"
 #include "p2/streaming/mpp_h264_encoder.hpp"
 #include "p2/streaming/rtsp_publisher.hpp"
@@ -58,6 +60,11 @@ struct Options {
     std::string event_csv = "/tmp/p2-fusion-events.csv";
     std::string rtsp_url;
     std::string h264_output;
+    std::string illumination_events =
+        "/tmp/p2-illumination-events.csv";
+    std::string illumination_sensor_subdevice;
+    std::string illumination_led_path =
+        "/sys/class/leds/zzh:white:fill";
     std::uint64_t duration_seconds = 30;
     std::uint64_t maximum_pairs = 0;
     p2::ImageRotation rotation = p2::ImageRotation::kClockwise270;
@@ -73,6 +80,8 @@ struct Options {
     std::uint64_t maximum_skew_ms = 50;
     std::uint64_t overlay_ttl_ms = 1000;
     std::uint32_t stream_bitrate_bps = 6'000'000;
+    bool auto_illumination = false;
+    p2::IlluminationConfig illumination;
 };
 
 struct InferenceStats {
@@ -141,6 +150,15 @@ void usage(const char *program)
         << "  --h264-output FILE          optional Annex-B evidence file\n"
         << "  --stream-bitrate-bps N      H.264 target, default 6000000\n"
         << "  --overlay-ttl-ms N          latest-result lifetime, default 1000\n"
+        << "  --auto-illumination         enable real PWM LED output\n"
+        << "  --illumination-events FILE  illumination transition CSV\n"
+        << "  --illumination-sensor PATH  override IMX415 subdevice\n"
+        << "  --illumination-led PATH     override LED class path\n"
+        << "  --illumination-target N     PWM brightness, max 32\n"
+        << "  --illumination-dark-p50 N   dark median threshold\n"
+        << "  --illumination-dark-p90 N   dark upper threshold\n"
+        << "  --illumination-stop-p50 N   adaptive ramp stop median\n"
+        << "  --illumination-stop-p90 N   adaptive ramp stop upper\n"
         << "  --summary FILE              summary JSON output\n"
         << "  --events FILE               per-pair CSV output\n"
         << "  --help                      show this text\n";
@@ -176,6 +194,10 @@ bool parse_options(int argc, char **argv, Options *options)
             usage(argv[0]);
             std::exit(EXIT_SUCCESS);
         }
+        if (argument == "--auto-illumination") {
+            options->auto_illumination = true;
+            continue;
+        }
         if (index + 1 >= argc)
             return false;
         const char *value = argv[++index];
@@ -197,6 +219,12 @@ bool parse_options(int argc, char **argv, Options *options)
             options->rtsp_url = value;
         else if (argument == "--h264-output")
             options->h264_output = value;
+        else if (argument == "--illumination-events")
+            options->illumination_events = value;
+        else if (argument == "--illumination-sensor")
+            options->illumination_sensor_subdevice = value;
+        else if (argument == "--illumination-led")
+            options->illumination_led_path = value;
         else if (argument == "--rotation") {
             if (!p2::parse_image_rotation(value, &options->rotation))
                 return false;
@@ -269,6 +297,38 @@ bool parse_options(int argc, char **argv, Options *options)
                 return false;
             options->stream_bitrate_bps =
                 static_cast<std::uint32_t>(parsed);
+        } else if (argument == "--illumination-target") {
+            std::uint64_t parsed = 0;
+            if (!parse_u64(value, &parsed) || parsed == 0U || parsed > 32U)
+                return false;
+            options->illumination.target_brightness =
+                static_cast<std::uint32_t>(parsed);
+            options->illumination.ramp_step = std::min<std::uint32_t>(
+                4U, options->illumination.target_brightness);
+        } else if (argument == "--illumination-dark-p50") {
+            std::uint64_t parsed = 0;
+            if (!parse_u64(value, &parsed) || parsed > 255U)
+                return false;
+            options->illumination.dark_p50_max =
+                static_cast<std::uint8_t>(parsed);
+        } else if (argument == "--illumination-dark-p90") {
+            std::uint64_t parsed = 0;
+            if (!parse_u64(value, &parsed) || parsed > 255U)
+                return false;
+            options->illumination.dark_p90_max =
+                static_cast<std::uint8_t>(parsed);
+        } else if (argument == "--illumination-stop-p50") {
+            std::uint64_t parsed = 0;
+            if (!parse_u64(value, &parsed) || parsed > 255U)
+                return false;
+            options->illumination.ramp_stop_p50 =
+                static_cast<std::uint8_t>(parsed);
+        } else if (argument == "--illumination-stop-p90") {
+            std::uint64_t parsed = 0;
+            if (!parse_u64(value, &parsed) || parsed > 255U)
+                return false;
+            options->illumination.ramp_stop_p90 =
+                static_cast<std::uint8_t>(parsed);
         } else {
             return false;
         }
@@ -290,7 +350,13 @@ bool parse_options(int argc, char **argv, Options *options)
         options->debounce.confirmation_frames > 0 &&
         options->debounce.release_frames > 0 &&
         options->lookahead_ms <= 1000 && options->maximum_skew_ms <= 1000 &&
-        options->overlay_ttl_ms > 0 && options->overlay_ttl_ms <= 10'000;
+        options->overlay_ttl_ms > 0 && options->overlay_ttl_ms <= 10'000 &&
+        (!options->auto_illumination ||
+         (!options->illumination_events.empty() &&
+          options->illumination.dark_p50_max <=
+              options->illumination.ramp_stop_p50 &&
+          options->illumination.dark_p90_max <=
+              options->illumination.ramp_stop_p90));
 }
 
 bool read_file(const std::string &path, std::vector<std::uint8_t> *bytes)
@@ -350,6 +416,9 @@ void write_summary(
     const FusionStats &fusion,
     const p2::MppH264EncoderStats &encoder,
     const p2::RtspPublisherStats &publisher,
+    const p2::IlluminationStats &illumination,
+    const p2::PwmLedStats &led,
+    p2::IlluminationState illumination_state,
     double elapsed_seconds, bool passed, const std::string &error)
 {
     const bool streaming_enabled = !options.rtsp_url.empty() ||
@@ -358,7 +427,7 @@ void write_summary(
         static_cast<double>(encoder.encoded_frames);
     output << std::fixed << std::setprecision(3)
            << "{\n"
-           << "  \"schema\": \"p2.multimodal-fusion.v2\",\n"
+           << "  \"schema\": \"p2.multimodal-fusion.v3\",\n"
            << "  \"result\": \"" << (passed ? "PASS" : "FAIL")
            << "\",\n"
            << "  \"error\": \"" << json_escape(error) << "\",\n"
@@ -446,6 +515,29 @@ void write_summary(
                encoder.mpp_total_ms / encoded_frames)
            << ", \"published_packets\": " << publisher.packets
            << ", \"publish_failures\": " << publisher.failures << "},\n"
+           << "  \"illumination\": {\"enabled\": "
+           << (options.auto_illumination ? "true" : "false")
+           << ", \"state\": \""
+           << p2::to_string(illumination_state)
+           << "\", \"target_brightness\": "
+           << options.illumination.target_brightness
+           << ", \"dark_p50_max\": "
+           << static_cast<unsigned>(options.illumination.dark_p50_max)
+           << ", \"dark_p90_max\": "
+           << static_cast<unsigned>(options.illumination.dark_p90_max)
+           << ", \"updates\": " << illumination.updates
+           << ", \"transitions\": " << illumination.transitions
+           << ", \"activations\": " << illumination.activations
+           << ", \"deactivations\": " << illumination.deactivations
+           << ", \"faults\": " << illumination.faults
+           << ", \"maximum_brightness\": "
+           << illumination.maximum_brightness
+           << ", \"led_writes\": " << led.writes
+           << ", \"led_failures\": " << led.failures
+           << ", \"led_maximum_commanded\": "
+           << led.maximum_commanded
+           << ", \"led_final_brightness\": "
+           << led.final_brightness << "},\n"
            << "  \"temporal_join\": {\"visible_received\": "
            << joiner.synchronizer.visible_received
            << ", \"thermal_received\": "
@@ -548,6 +640,43 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     const p2::PersonDetectorRuntimeInfo runtime = detector.runtime_info();
+
+    std::unique_ptr<p2::SysfsPwmLed> led;
+    std::unique_ptr<p2::Imx415ExposureMonitor> exposure_monitor;
+    std::unique_ptr<p2::IlluminationController> illumination_controller;
+    std::ofstream illumination_events;
+    if (options.auto_illumination) {
+        led = std::make_unique<p2::SysfsPwmLed>(
+            options.illumination_led_path);
+        if (!led->initialize(options.illumination.target_brightness,
+                             &error)) {
+            std::cerr << "illumination LED initialization failed: "
+                      << error << '\n';
+            return EXIT_FAILURE;
+        }
+        exposure_monitor =
+            std::make_unique<p2::Imx415ExposureMonitor>();
+        if (!exposure_monitor->initialize(
+                options.illumination_sensor_subdevice, &error)) {
+            std::cerr << "illumination exposure monitor failed: "
+                      << error << '\n';
+            return EXIT_FAILURE;
+        }
+        illumination_controller =
+            std::make_unique<p2::IlluminationController>(
+                options.illumination);
+        illumination_events.open(options.illumination_events);
+        if (!illumination_events) {
+            std::cerr << "failed to open illumination event CSV "
+                      << options.illumination_events << '\n';
+            return EXIT_FAILURE;
+        }
+        illumination_events
+            << "timestamp_ns,visible_sequence,thermal_sequence,p50,p90,"
+               "exposure,gain,exposure_ratio,gain_ratio,alert_active,"
+               "dark_condition,trigger_condition,state,ramp,brightness,"
+               "state_changed\n";
+    }
 
     const bool streaming_enabled = !options.rtsp_url.empty() ||
         !options.h264_output.empty();
@@ -703,10 +832,31 @@ int main(int argc, char **argv)
             ++inference_stats.frames;
             inference_stats.person_detections += result.detections.size();
             inference_stats.total_ms.push_back(result.timing.total_ms);
+            p2::IlluminationObservation illumination_observation;
+            if (options.auto_illumination) {
+                if (frame.data == nullptr || frame.data_offset > frame.size ||
+                    !p2::analyze_nv12_luma(
+                        frame.data + frame.data_offset,
+                        frame.size - frame.data_offset,
+                        frame.width, frame.height, frame.bytes_per_line,
+                        &illumination_observation.luma,
+                        &inference_error) ||
+                    !exposure_monitor->sample(
+                        &illumination_observation.exposure,
+                        &inference_error)) {
+                    ++inference_stats.failures;
+                    set_failure("illumination telemetry failed: " +
+                                inference_error);
+                    lease.reset();
+                    break;
+                }
+                illumination_observation.timestamp_ns = frame.event.timestamp_ns;
+            }
             p2::VisibleFusionFrame fusion_frame;
             fusion_frame.event = frame.event;
             fusion_frame.timing = result.timing;
             fusion_frame.detections = std::move(result.detections);
+            fusion_frame.illumination = illumination_observation;
             fusion_frame.inference_done_ns = p2::monotonic_now_ns();
             lease.reset();
             enqueue_pairs(joiner.push_visible(std::move(fusion_frame)));
@@ -845,6 +995,49 @@ int main(int argc, char **argv)
             set_failure("alert debounce failed: " + fusion_error);
             continue;
         }
+        p2::IlluminationUpdate illumination_update;
+        if (options.auto_illumination) {
+            pair.visible.illumination.sustained_thermal_target =
+                result.person_with_thermal_evidence;
+            if (!illumination_controller->update(
+                    pair.visible.illumination, &illumination_update,
+                    &fusion_error)) {
+                set_failure("illumination controller failed: " +
+                            fusion_error);
+                illumination_controller->force_fault(&illumination_update);
+                led->off(nullptr);
+            } else if (!led->set_brightness(
+                           illumination_update.desired_brightness,
+                           &fusion_error)) {
+                illumination_controller->force_fault(&illumination_update);
+                led->off(nullptr);
+                set_failure("illumination LED write failed: " +
+                            fusion_error);
+            }
+            illumination_events
+                << pair.thermal.event.timestamp_ns << ','
+                << pair.visible.event.sequence << ','
+                << pair.thermal.event.sequence << ','
+                << static_cast<unsigned>(pair.visible.illumination.luma.p50)
+                << ','
+                << static_cast<unsigned>(pair.visible.illumination.luma.p90)
+                << ',' << pair.visible.illumination.exposure.exposure
+                << ',' << pair.visible.illumination.exposure.analogue_gain
+                << ',' << pair.visible.illumination.exposure.exposure_ratio
+                << ',' << pair.visible.illumination.exposure.analogue_gain_ratio
+                << ',' << (alert.active ? 1 : 0) << ','
+                << (illumination_update.dark_condition ? 1 : 0) << ','
+                << (illumination_update.trigger_condition ? 1 : 0) << ','
+                << p2::to_string(illumination_update.state) << ','
+                << p2::to_string(illumination_update.ramp_direction) << ','
+                << illumination_update.desired_brightness << ','
+                << (illumination_update.state_changed ? 1 : 0) << '\n';
+            if (!illumination_events) {
+                set_failure("illumination event write failed");
+                illumination_controller->force_fault(&illumination_update);
+                led->off(nullptr);
+            }
+        }
         if (streaming_enabled) {
             OverlayState next_overlay;
             next_overlay.visible_timestamp_ns =
@@ -923,6 +1116,16 @@ int main(int argc, char **argv)
         if (!h264_output)
             set_failure("H.264 evidence flush failed");
     }
+    if (options.auto_illumination) {
+        p2::IlluminationUpdate shutdown_update;
+        illumination_controller->shutdown(&shutdown_update);
+        std::string led_error;
+        if (!led->off(&led_error))
+            set_failure("illumination shutdown failed: " + led_error);
+        illumination_events.flush();
+        if (!illumination_events)
+            set_failure("illumination event flush failed");
+    }
     const double elapsed_seconds = static_cast<double>(
         p2::monotonic_now_ns() - started_ns) / 1.0e9;
     {
@@ -940,6 +1143,16 @@ int main(int argc, char **argv)
     const p2::RtspPublisherStats publisher_stats =
         publisher != nullptr ? publisher->stats()
                              : p2::RtspPublisherStats{};
+    const p2::IlluminationStats illumination_stats =
+        illumination_controller != nullptr
+            ? illumination_controller->stats()
+            : p2::IlluminationStats{};
+    const p2::PwmLedStats led_stats =
+        led != nullptr ? led->stats() : p2::PwmLedStats{};
+    const p2::IlluminationState illumination_state =
+        illumination_controller != nullptr
+            ? illumination_controller->state()
+            : p2::IlluminationState::off;
     const bool passed = error.empty() && visible_capture_ok &&
         thermal_capture_ok && fusion_stats.pairs > 0 &&
         inference_stats.failures == 0 && thermal_stats.math_failures == 0 &&
@@ -957,13 +1170,20 @@ int main(int argc, char **argv)
            (publisher_stats.packets == encoder_stats.encoded_frames &&
             publisher_stats.failures == 0U))));
 
+    const bool illumination_passed = !options.auto_illumination ||
+        (illumination_state != p2::IlluminationState::fault &&
+         illumination_stats.faults == 0U && led_stats.failures == 0U &&
+         led_stats.final_brightness == 0U);
+    const bool final_passed = passed && illumination_passed;
+
     write_summary(std::cout, options, calibration, runtime,
                   visible_capture_stats, thermal_capture_stats,
                   visible_queue.stats(), encoder_queue.stats(),
                   fusion_queue.stats(), joiner_stats,
                   filter.stats(), inference_stats, thermal_stats,
                   fusion_stats, encoder_stats, publisher_stats,
-                  elapsed_seconds, passed, error);
+                  illumination_stats, led_stats, illumination_state,
+                  elapsed_seconds, final_passed, error);
     std::ofstream summary(options.summary_json);
     if (!summary) {
         std::cerr << "failed to open summary JSON " << options.summary_json
@@ -976,6 +1196,7 @@ int main(int argc, char **argv)
                   fusion_queue.stats(), joiner_stats,
                   filter.stats(), inference_stats, thermal_stats,
                   fusion_stats, encoder_stats, publisher_stats,
-                  elapsed_seconds, passed, error);
-    return passed ? EXIT_SUCCESS : EXIT_FAILURE;
+                  illumination_stats, led_stats, illumination_state,
+                  elapsed_seconds, final_passed, error);
+    return final_passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }

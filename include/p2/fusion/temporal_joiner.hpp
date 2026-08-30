@@ -2,6 +2,7 @@
 
 #include "p2/capture/frame_types.hpp"
 #include "p2/inference/person_detector.hpp"
+#include "p2/illumination/illumination_controller.hpp"
 #include "p2/sync/frame_synchronizer.hpp"
 #include "p2/thermal/mlx90640_math.hpp"
 
@@ -17,6 +18,7 @@ struct VisibleFusionFrame {
     VisibleFrameEvent event;
     PersonInferenceTiming timing;
     std::vector<PersonDetection> detections;
+    IlluminationObservation illumination;
     std::uint64_t inference_done_ns = 0;
 };
 
