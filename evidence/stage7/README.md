@@ -21,7 +21,7 @@ supervisor恢复和资源摘要证据。P2.7整体仍保留“2小时长稳待�
 ## 结果
 
 - 60秒：1794帧编码、453对热融合、1794/1794 RTSP包，0队列淘汰、0发布失败，
-  端到端应用PASS；峰值RSS约582720 KB，结束RSS约35792 KB，线程2，fd33。
+  端到端应用PASS；峰值VmPeak约582720 KB，结束RSS约35792 KB，线程2，fd33。
 - 杀业务app：supervisor `restart_count=1`，新业务和RTSP发布恢复，客户端成功读取。
 - 杀MediaMTX：应用安全报告Broken pipe并退出，supervisor `restart_count=2`，
   重建MediaMTX和业务，客户端恢复读取。

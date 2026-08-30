@@ -115,7 +115,7 @@ struct FusionStats {
 };
 
 struct ProcessRuntimeStats {
-    std::uint64_t peak_rss_kb = 0;
+    std::uint64_t peak_vm_kb = 0;
     std::uint64_t final_rss_kb = 0;
     std::uint64_t final_threads = 0;
     std::uint64_t open_fds = 0;
@@ -405,7 +405,7 @@ ProcessRuntimeStats sample_process_runtime()
         if (!(input >> key >> value))
             continue;
         if (key == "VmPeak:")
-            stats.peak_rss_kb = value;
+            stats.peak_vm_kb = value;
         else if (key == "VmRSS:")
             stats.final_rss_kb = value;
         else if (key == "Threads:")
@@ -576,8 +576,8 @@ void write_summary(
            << led.maximum_commanded
            << ", \"led_final_brightness\": "
            << led.final_brightness << "},\n"
-           << "  \"process\": {\"peak_rss_kb\": "
-           << process.peak_rss_kb << ", \"final_rss_kb\": "
+           << "  \"process\": {\"peak_vm_kb\": "
+           << process.peak_vm_kb << ", \"final_rss_kb\": "
            << process.final_rss_kb << ", \"final_threads\": "
            << process.final_threads << ", \"open_fds\": "
            << process.open_fds << "},\n"
