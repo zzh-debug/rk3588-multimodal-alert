@@ -3,11 +3,14 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "p2/capture/frame_types.hpp"
 
 namespace p2 {
+
+class VisibleCaptureSession;
 
 struct VisibleCaptureConfig {
     std::string device;
@@ -30,6 +33,32 @@ struct VisibleCaptureStats {
     std::uint32_t bytes_per_line = 0;
     std::uint32_t size_image = 0;
     std::uint32_t allocated_buffers = 0;
+    std::uint32_t lease_high_watermark = 0;
+};
+
+class VisibleFrameLease {
+public:
+    VisibleFrameLease() = default;
+    ~VisibleFrameLease();
+
+    VisibleFrameLease(VisibleFrameLease &&other) noexcept;
+    VisibleFrameLease &operator=(VisibleFrameLease &&other) noexcept;
+    VisibleFrameLease(const VisibleFrameLease &) = delete;
+    VisibleFrameLease &operator=(const VisibleFrameLease &) = delete;
+
+    explicit operator bool() const { return session_ != nullptr; }
+    const VisibleFrameView &view() const { return view_; }
+    void reset();
+
+private:
+    friend class VisibleCapture;
+    VisibleFrameLease(VisibleFrameView view,
+                      std::uint32_t buffer_index,
+                      std::shared_ptr<VisibleCaptureSession> session);
+
+    VisibleFrameView view_{};
+    std::uint32_t buffer_index_ = 0;
+    std::shared_ptr<VisibleCaptureSession> session_;
 };
 
 class VisibleCapture {
@@ -42,6 +71,10 @@ public:
     bool run_frames(
         const std::atomic<bool> &stop,
         const std::function<void(const VisibleFrameView &)> &on_frame,
+        std::string *error);
+    bool run_leased_frames(
+        const std::atomic<bool> &stop,
+        const std::function<void(VisibleFrameLease &&)> &on_frame,
         std::string *error);
     const VisibleCaptureStats &stats() const { return stats_; }
 

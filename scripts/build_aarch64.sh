@@ -21,6 +21,7 @@ for binary in \
     p2_calibration_capture \
     p2_calibration_gui \
     p2_person_detect \
+    p2_person_detect_async \
     p2_person_detect_nv12 \
     p2_person_dataset_capture \
     p2_person_evaluate

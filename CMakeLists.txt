@@ -185,6 +185,14 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME person_evaluation COMMAND test_person_evaluation)
+
+    add_executable(test_bounded_queue tests/test_bounded_queue.cpp)
+    target_include_directories(test_bounded_queue PRIVATE include)
+    target_link_libraries(test_bounded_queue PRIVATE Threads::Threads)
+    target_compile_options(test_bounded_queue PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME bounded_latest_queue COMMAND test_bounded_queue)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -357,6 +365,25 @@ if(P2_BUILD_HARDWARE)
         -Wall -Wextra -Wpedantic -Werror
     )
 
+    add_executable(p2_person_detect_async
+        app/p2_person_detect_async.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+    )
+    target_include_directories(p2_person_detect_async PRIVATE include)
+    target_include_directories(p2_person_detect_async SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_person_detect_async PRIVATE
+        p2_person_detector Threads::Threads
+    )
+    target_compile_definitions(p2_person_detect_async PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_person_detect_async PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+
     add_executable(p2_person_detect_nv12
         app/p2_person_detect_nv12.cpp
     )
@@ -395,6 +422,7 @@ if(P2_BUILD_HARDWARE)
         p2_cross_spectral_probe
         p2_calibration_fit
         p2_person_detect
+        p2_person_detect_async
         p2_person_detect_nv12
         p2_person_dataset_capture
         p2_person_evaluate
