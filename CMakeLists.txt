@@ -60,6 +60,14 @@ target_compile_options(p2_streaming_geometry PRIVATE
     -Wall -Wextra -Wpedantic -Werror
 )
 
+add_library(p2_illumination STATIC
+    src/illumination/illumination_controller.cpp
+)
+target_include_directories(p2_illumination PUBLIC include)
+target_compile_options(p2_illumination PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 add_library(p2_person_evaluation STATIC
     src/evaluation/person_dataset.cpp
     src/evaluation/person_metrics.cpp
@@ -228,6 +236,16 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME video_overlay_geometry COMMAND test_video_overlay)
+
+    add_executable(test_illumination_controller
+        tests/test_illumination_controller.cpp)
+    target_link_libraries(test_illumination_controller PRIVATE
+        p2_illumination)
+    target_compile_options(test_illumination_controller PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME illumination_controller
+        COMMAND test_illumination_controller)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -272,6 +290,15 @@ if(P2_BUILD_HARDWARE)
     find_library(P2_AVFORMAT_LIBRARY NAMES avformat REQUIRED)
     find_library(P2_AVCODEC_LIBRARY NAMES avcodec REQUIRED)
     find_library(P2_AVUTIL_LIBRARY NAMES avutil REQUIRED)
+
+    add_library(p2_illumination_hardware STATIC
+        src/illumination/illumination_hardware.cpp
+    )
+    target_include_directories(p2_illumination_hardware PUBLIC include)
+    target_link_libraries(p2_illumination_hardware PUBLIC p2_illumination)
+    target_compile_options(p2_illumination_hardware PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
 
     add_library(p2_streaming STATIC
         src/streaming/mpp_h264_encoder.cpp
@@ -469,6 +496,25 @@ if(P2_BUILD_HARDWARE)
         -Wall -Wextra -Wpedantic -Werror
     )
 
+    add_executable(p2_illumination_probe
+        app/p2_illumination_probe.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+    )
+    target_include_directories(p2_illumination_probe PRIVATE include)
+    target_include_directories(p2_illumination_probe SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_illumination_probe PRIVATE
+        p2_illumination_hardware Threads::Threads
+    )
+    target_compile_definitions(p2_illumination_probe PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_illumination_probe PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+
     add_executable(p2_multimodal_fusion
         app/p2_multimodal_fusion.cpp
         src/capture/device_discovery.cpp
@@ -529,6 +575,7 @@ if(P2_BUILD_HARDWARE)
         p2_person_detect
         p2_person_detect_async
         p2_mpp_stream
+        p2_illumination_probe
         p2_multimodal_fusion
         p2_person_detect_nv12
         p2_person_dataset_capture

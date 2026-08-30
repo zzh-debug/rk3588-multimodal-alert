@@ -23,6 +23,7 @@ for binary in \
     p2_person_detect \
     p2_person_detect_async \
     p2_mpp_stream \
+    p2_illumination_probe \
     p2_multimodal_fusion \
     p2_person_detect_nv12 \
     p2_person_dataset_capture \
