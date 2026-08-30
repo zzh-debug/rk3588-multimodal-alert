@@ -1,0 +1,16 @@
+Implementation baseline: 0a510dea32603a9e261c0935eb94d4777856ca92
+State-machine baseline: dd8e7cfaa636fec3d6a35605fef16b1ff1b48057
+Board: ATK-DLRK3588, aarch64
+Kernel: Linux 5.10.209 #14
+Rootfs: Buildroot 2021.11, NFS root
+RKNN API: 2.0.0b0 (35a6907d79@2024-03-24T10:31:14)
+RKNN driver: 0.9.6
+LED path: /sys/class/leds/zzh:white:fill
+LED safety limit: brightness 32 of max 255
+PWM period: 50000 ns (20 kHz), normal polarity
+Visible source: dynamically discovered rkisp_mainpath, 3840x2160 NV12
+Exposure source: dynamically discovered IMX415 V4L2 subdevice
+
+Expected board program hashes for the clean implementation build are recorded in
+binary-sha256.txt. The first gate was run from a dirty source tree only because the
+stage evidence was being collected; the final clean rerun overwrites these reports.

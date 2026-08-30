@@ -1,0 +1,18 @@
+# In the RK3588 Dev Container as user vscode
+cd /rk3588_dev/projects/rk3588_multimodal_alert
+./scripts/build_native.sh
+./scripts/build_aarch64.sh
+
+# From the Ubuntu host, after checking the board NFS root
+scp build/aarch64/p2_multimodal_fusion build/aarch64/p2_illumination_probe \
+    atk-dlrk3588:/usr/bin/
+ssh atk-dlrk3588 'chmod 755 /usr/bin/p2_multimodal_fusion /usr/bin/p2_illumination_probe'
+
+# Complete P2.6 combination gate on the board
+scp scripts/p2_p26_illumination_gate.sh atk-dlrk3588:/tmp/
+ssh atk-dlrk3588 'chmod 700 /tmp/p2_p26_illumination_gate.sh && \
+    /tmp/p2_p26_illumination_gate.sh /tmp/p2-p26-illumination-gate'
+
+# Manual status check after every run
+cat /sys/class/leds/zzh:white:fill/brightness
+grep -A1 white-fill /sys/kernel/debug/pwm
