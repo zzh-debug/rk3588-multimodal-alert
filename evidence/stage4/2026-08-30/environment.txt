@@ -1,0 +1,12 @@
+application_commit=4ad8be6a9fb9178692de61120827e8c7a8b12002
+board=ATK-DLRK3588
+kernel=Linux 5.10.209 #14 aarch64
+rootfs=192.168.5.11:/home/zzh/workspace/myproject/nfs_rootfs/atk_dlrk3588 (NFS)
+binary=/usr/bin/p2_person_detect_async
+binary_sha256=a634cca3f72a53bc36ea679eadf0bdad7a563c27f7e0a3d3842744017c90c460
+model=/usr/share/p2/models/yolov5s-640-640.rknn
+model_sha256=7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71
+rknn_api=2.0.0b0 (35a6907d79@2024-03-24T10:31:14)
+rknn_driver=0.9.6
+rga_api=1.10.1_[1]
+command=/usr/bin/p2_person_detect_async --duration-sec 60 --warmup 10 --json /tmp/p24-async-60.json

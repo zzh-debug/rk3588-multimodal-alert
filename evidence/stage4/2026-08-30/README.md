@@ -1,0 +1,20 @@
+# P2.4.1 采集/推理解耦板端证据（2026-08-30）
+
+本目录保存实现提交 `4ad8be6a9fb9178692de61120827e8c7a8b12002` 的精选证据。
+
+| 文件 | 内容 |
+|---|---|
+| `async-60s.json` | 默认容量 1 的 60 秒正式结构化摘要 |
+| `async-60s.log` | 同次运行的完整标准输出 |
+| `queue-capacity-1-15s.json` | 容量 1 的 15 秒延迟对照 |
+| `queue-capacity-3-15s.json` | 容量 3 的 15 秒延迟对照 |
+| `environment.txt` | 内核、NFS 根、程序和模型哈希 |
+
+正式门禁得到 1796 个 DQBUF、29.899 FPS，采集侧 0 sequence gap、0 坏 payload、
+0 缺失单调时间戳。推理略慢时队列主动淘汰 120 帧，`processed gap frames` 同为
+120；退出后队列 pending 为 0。
+
+当前交接是 V4L2 MMAP Buffer 租约，不是 DMA-BUF。日志中的
+`application_full_frame_cpu_copies=0` 只表示应用在 4K 采集帧交给推理线程时没有
+执行全帧 CPU memcpy。
+
