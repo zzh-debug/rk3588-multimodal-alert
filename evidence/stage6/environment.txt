@@ -11,6 +11,6 @@ PWM period: 50000 ns (20 kHz), normal polarity
 Visible source: dynamically discovered rkisp_mainpath, 3840x2160 NV12
 Exposure source: dynamically discovered IMX415 V4L2 subdevice
 
-Expected board program hashes for the clean implementation build are recorded in
-binary-sha256.txt. The first gate was run from a dirty source tree only because the
-stage evidence was being collected; the final clean rerun overwrites these reports.
+Clean implementation build hashes (recorded in binary-sha256.txt):
+424e9b4bb932e4a9525a904934c2394506b290c634359e1856f55ee3b01a6cbd  /usr/bin/p2_multimodal_fusion
+cffaab1e4d040c692fce2b71ab40d9661d843b25cd568c90c710985bd4a7d2d5  /usr/bin/p2_illumination_probe

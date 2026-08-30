@@ -2,11 +2,11 @@
   "schema": "p2.illumination-probe.v1",
   "result": "PASS",
   "error": "",
-  "application_commit": "dd8e7cfaa636",
-  "elapsed_seconds": 12.046,
+  "application_commit": "6a55e07d3634",
+  "elapsed_seconds": 12.041,
   "mode": {"force_dark": true, "forced_thermal_seconds": 4, "write_led": true},
   "capture": {"frames": 354, "dqbuf": 355, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0},
-  "telemetry": {"dark_frames": 354, "mean_p50": 127.466, "mean_p90": 177.065, "mean_exposure_ratio": 0.575, "mean_gain_ratio": 0.167},
+  "telemetry": {"dark_frames": 354, "mean_p50": 129.986, "mean_p90": 173.938, "mean_exposure_ratio": 0.570, "mean_gain_ratio": 0.167},
   "controller": {"updates": 354, "transitions": 7, "activations": 1, "deactivations": 1, "faults": 0, "maximum_brightness": 32},
   "led": {"writes": 17, "failures": 0, "maximum_commanded": 32, "final_brightness": 0}
 }
