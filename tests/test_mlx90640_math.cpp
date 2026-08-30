@@ -1,12 +1,14 @@
 #include "p2/thermal/mlx90640_math.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -39,6 +41,25 @@ int main(int argc, char **argv)
     if (!require(!validation_math.initialize_eeprom_be(
                      &invalid_eeprom, 1, &error),
                  "invalid EEPROM size must be rejected"))
+        return EXIT_FAILURE;
+
+    std::array<float, p2::kMlx90640Pixels> transient;
+    transient.fill(25.0F);
+    transient[0] = std::numeric_limits<float>::quiet_NaN();
+    transient[33] = std::numeric_limits<float>::infinity();
+    std::size_t repaired = 0;
+    if (!require(!p2::repair_nonfinite_thermal_pixels(
+                     &transient, 1, &repaired, &error),
+                 "repair gate rejects too many transient pixels") ||
+        !require(std::isnan(transient[0]) && std::isinf(transient[33]) &&
+                     transient[1] == 25.0F,
+                 "rejected repair must not partially mutate the grid") ||
+        !require(p2::repair_nonfinite_thermal_pixels(
+                     &transient, 2, &repaired, &error),
+                 "bounded transient repair succeeds") ||
+        !require(repaired == 2 && std::isfinite(transient[0]) &&
+                     std::isfinite(transient[33]),
+                 "transient repair did not restore finite pixels"))
         return EXIT_FAILURE;
 
     if (argc == 1) {

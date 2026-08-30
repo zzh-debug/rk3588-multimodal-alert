@@ -128,6 +128,75 @@ bool decode_zmlx(const ThermalFramePayload &payload, DecodedPair *decoded,
 
 }  // namespace
 
+bool repair_nonfinite_thermal_pixels(
+    std::array<float, kMlx90640Pixels> *pixels,
+    std::size_t maximum_repairable_pixels,
+    std::size_t *repaired_pixels,
+    std::string *error)
+{
+    if (error != nullptr)
+        error->clear();
+    if (pixels == nullptr || repaired_pixels == nullptr) {
+        set_error(error, "non-finite repair output pointer is null");
+        return false;
+    }
+    *repaired_pixels = 0;
+    std::vector<std::size_t> invalid;
+    for (std::size_t index = 0; index < pixels->size(); ++index) {
+        if (!std::isfinite((*pixels)[index]))
+            invalid.push_back(index);
+    }
+    if (invalid.empty())
+        return true;
+    if (invalid.size() > maximum_repairable_pixels) {
+        set_error(error, "non-finite thermal pixel count exceeds repair gate");
+        return false;
+    }
+
+    const std::array<float, kMlx90640Pixels> source = *pixels;
+    std::array<float, kMlx90640Pixels> repaired = source;
+    for (const std::size_t index : invalid) {
+        const int center_column = static_cast<int>(index % kMlx90640Width);
+        const int center_row = static_cast<int>(index / kMlx90640Width);
+        std::vector<float> neighbors;
+        for (int radius = 1; radius <= 2 && neighbors.empty(); ++radius) {
+            for (int row = center_row - radius;
+                 row <= center_row + radius; ++row) {
+                for (int column = center_column - radius;
+                     column <= center_column + radius; ++column) {
+                    if (row < 0 || column < 0 ||
+                        row >= static_cast<int>(kMlx90640Height) ||
+                        column >= static_cast<int>(kMlx90640Width) ||
+                        (row == center_row && column == center_column) ||
+                        (std::abs(row - center_row) != radius &&
+                         std::abs(column - center_column) != radius))
+                        continue;
+                    const std::size_t neighbor =
+                        static_cast<std::size_t>(row) * kMlx90640Width +
+                        static_cast<std::size_t>(column);
+                    if (std::isfinite(source[neighbor]))
+                        neighbors.push_back(source[neighbor]);
+                }
+            }
+        }
+        if (neighbors.empty()) {
+            set_error(error,
+                      "non-finite thermal pixel has no finite neighbor");
+            return false;
+        }
+        std::sort(neighbors.begin(), neighbors.end());
+        const std::size_t middle = neighbors.size() / 2U;
+        repaired[index] = neighbors[middle];
+        if (neighbors.size() % 2U == 0U) {
+            repaired[index] =
+                (neighbors[middle - 1U] + neighbors[middle]) * 0.5F;
+        }
+    }
+    *pixels = std::move(repaired);
+    *repaired_pixels = invalid.size();
+    return true;
+}
+
 struct Mlx90640Math::Impl {
     paramsMLX90640 parameters{};
     bool initialized = false;
@@ -244,6 +313,18 @@ bool Mlx90640Math::calculate(const ThermalFramePayload &frame,
         MLX90640_BadPixelsCorrection(impl_->parameters.outlierPixels,
                                      output.image.data(), 1,
                                      &impl_->parameters);
+        if (!repair_nonfinite_thermal_pixels(
+                &output.temperature_c,
+                config.max_repairable_nonfinite_pixels,
+                &output.repaired_nonfinite_temperature_pixels, error)) {
+            return false;
+        }
+        if (!repair_nonfinite_thermal_pixels(
+                &output.image,
+                config.max_repairable_nonfinite_pixels,
+                &output.repaired_nonfinite_image_pixels, error)) {
+            return false;
+        }
     }
     output.calculation_time_ns = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(

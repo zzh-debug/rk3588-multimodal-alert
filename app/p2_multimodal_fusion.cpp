@@ -77,6 +77,8 @@ struct ThermalProcessingStats {
     std::uint64_t frames = 0;
     std::uint64_t math_failures = 0;
     std::uint64_t filter_failures = 0;
+    std::uint64_t repaired_nonfinite_temperature_pixels = 0;
+    std::uint64_t repaired_nonfinite_image_pixels = 0;
 };
 
 struct FusionStats {
@@ -400,6 +402,10 @@ void write_summary(
            << ", \"thermal_frames\": " << thermal.frames
            << ", \"math_failures\": " << thermal.math_failures
            << ", \"filter_failures\": " << thermal.filter_failures
+           << ", \"repaired_nonfinite_temperature_pixels\": "
+           << thermal.repaired_nonfinite_temperature_pixels
+           << ", \"repaired_nonfinite_image_pixels\": "
+           << thermal.repaired_nonfinite_image_pixels
            << ", \"filter_accepted_frames\": "
            << filter.accepted_frames << "},\n"
            << "  \"fusion\": {\"processed_pairs\": " << fusion.pairs
@@ -615,6 +621,10 @@ int main(int argc, char **argv)
                     return;
                 }
                 ++thermal_stats.frames;
+                thermal_stats.repaired_nonfinite_temperature_pixels +=
+                    result.repaired_nonfinite_temperature_pixels;
+                thermal_stats.repaired_nonfinite_image_pixels +=
+                    result.repaired_nonfinite_image_pixels;
                 p2::ThermalFusionFrame fusion_frame;
                 fusion_frame.event = frame.event;
                 fusion_frame.temperature_c = filtered;
