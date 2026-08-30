@@ -1,0 +1,22 @@
+# Build as user vscode in the RK3588 Dev Container
+cd /rk3588_dev/projects/rk3588_multimodal_alert
+./scripts/build_native.sh
+./scripts/build_aarch64.sh
+
+# Deploy from Ubuntu host after checking the board NFS root
+scp build/aarch64/p2_multimodal_fusion atk-dlrk3588:/usr/bin/
+scp scripts/p2_multimodal_service.sh scripts/p2_p27_reliability_gate.sh \
+    scripts/p2_p27_long_gate.sh atk-dlrk3588:/tmp/
+ssh atk-dlrk3588 'cp /tmp/p2_multimodal_service.sh /usr/bin/; \
+    chmod 755 /usr/bin/p2_multimodal_service.sh /usr/bin/p2_multimodal_fusion'
+
+# Controlled app/MediaMTX failure recovery and 20-second resource gate
+ssh atk-dlrk3588 '/tmp/p2_p27_reliability_gate.sh'
+
+# 60-second RTSP long-stability gate
+ssh atk-dlrk3588 '/tmp/p2_p27_long_gate.sh'
+
+# Final safety check
+ssh atk-dlrk3588 'cat /sys/class/leds/zzh:white:fill/brightness; \
+    grep -A1 white-fill /sys/kernel/debug/pwm; \
+    ps -ef | grep -E "[p]2_multimodal|[m]ediamtx" || true'

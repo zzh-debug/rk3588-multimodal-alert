@@ -1,0 +1,9 @@
+Filesystem                                                          Size  Used Avail Use% Mounted on
+192.168.5.11:/home/zzh/workspace/myproject/nfs_rootfs/atk_dlrk3588  344G  258G   70G  79% /
+devtmpfs                                                            3.8G  8.0K  3.8G   1% /dev
+tmpfs                                                               3.9G  724K  3.9G   1% /tmp
+tmpfs                                                               3.9G  752K  3.9G   1% /run
+tmpfs                                                               3.9G  376K  3.9G   1% /var/log
+tmpfs                                                               3.9G     0  3.9G   0% /dev/shm
+/dev/mmcblk0p7                                                      124M   12M  109M  10% /oem
+/dev/mmcblk0p8                                                       44G  129M   44G   1% /userdata

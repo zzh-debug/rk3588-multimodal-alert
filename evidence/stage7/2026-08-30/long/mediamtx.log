@@ -1,0 +1,17 @@
+1970/01/01 00:51:22 INF MediaMTX v1.7.0
+1970/01/01 00:51:22 INF configuration loaded from /etc/mediamtx.yml
+1970/01/01 00:51:22 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+1970/01/01 00:51:22 INF [RTMP] listener opened on :1935
+1970/01/01 00:51:22 INF [HLS] listener opened on :8888
+1970/01/01 00:51:22 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
+1970/01/01 00:51:22 INF [SRT] listener opened on :8890 (UDP)
+1970/01/01 00:51:23 INF [RTSP] [conn 127.0.0.1:42660] opened
+1970/01/01 00:51:23 INF [RTSP] [session b9c28ad3] created by 127.0.0.1:42660
+1970/01/01 00:51:23 INF [RTSP] [session b9c28ad3] is publishing to path 'p2', 1 track (H264)
+1970/01/01 00:51:31 INF [RTSP] [conn 127.0.0.1:42668] opened
+1970/01/01 00:51:31 INF [RTSP] [session 2175174a] created by 127.0.0.1:42668
+1970/01/01 00:51:31 INF [RTSP] [session 2175174a] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/01 00:51:36 INF [RTSP] [session 2175174a] destroyed: torn down by 127.0.0.1:42668
+1970/01/01 00:51:36 INF [RTSP] [conn 127.0.0.1:42668] closed: EOF
+1970/01/01 00:52:23 INF [RTSP] [session b9c28ad3] destroyed: torn down by 127.0.0.1:42660
+1970/01/01 00:52:23 INF [RTSP] [conn 127.0.0.1:42660] closed: EOF

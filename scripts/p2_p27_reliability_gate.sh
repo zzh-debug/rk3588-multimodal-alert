@@ -48,6 +48,37 @@ done
 [ "$attempt" -lt 10 ]
 P2_SERVICE_DIR="$SERVICE_DIR" "$SERVICE" status >"$SERVICE_DIR/status-recovered.log"
 
+mediamtx_pid=$(cat "$SERVICE_DIR/mediamtx.pid")
+kill -TERM "$mediamtx_pid"
+attempt=0
+while [ "$attempt" -lt 12 ]; do
+    restart_count=$(cat "$SERVICE_DIR/restart.count" 2>/dev/null || printf 0)
+    new_mediamtx_pid=$(cat "$SERVICE_DIR/mediamtx.pid" 2>/dev/null || printf 0)
+    case "$new_mediamtx_pid" in
+        ''|*[!0-9]*) new_mediamtx_pid=0 ;;
+    esac
+    if [ "$restart_count" -ge 2 ] &&
+       [ "$new_mediamtx_pid" -ne "$mediamtx_pid" ]; then
+        break
+    fi
+    sleep 1
+    attempt=$((attempt + 1))
+done
+[ "$attempt" -lt 12 ]
+attempt=0
+while [ "$attempt" -lt 10 ]; do
+    if timeout 8 ffmpeg -hide_banner -loglevel error \
+        -rtsp_transport tcp -i "$STREAM_URL" -t 2 -an -f null - \
+        >>"$SERVICE_DIR/client-after-mediamtx.log" 2>&1; then
+        break
+    fi
+    sleep 1
+    attempt=$((attempt + 1))
+done
+[ "$attempt" -lt 10 ]
+P2_SERVICE_DIR="$SERVICE_DIR" "$SERVICE" status \
+    >"$SERVICE_DIR/status-media-recovered.log"
+
 P2_SERVICE_DIR="$SERVICE_DIR" "$SERVICE" stop >"$SERVICE_DIR/status-stop.log"
 test "$(cat "$LED")" -eq 0
 if P2_SERVICE_DIR="$SERVICE_DIR" "$SERVICE" status \
