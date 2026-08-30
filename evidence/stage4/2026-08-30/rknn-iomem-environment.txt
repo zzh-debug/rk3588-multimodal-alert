@@ -1,0 +1,15 @@
+application_commit=19fdb295f85708d2faac439ae1f8eadc52aa5a47
+board=ATK-DLRK3588
+kernel=Linux 5.10.209 #14 aarch64
+rootfs=192.168.5.11:/home/zzh/workspace/myproject/nfs_rootfs/atk_dlrk3588 (NFS)
+binary=/usr/bin/p2_person_detect_async
+binary_sha256=bcedd702c303d5b3ea4fec9463264019f6c5a939706c483eb44485497468d9e5
+model=/usr/share/p2/models/yolov5s-640-640.rknn
+model_sha256=7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71
+rknn_api=2.0.0b0 (35a6907d79@2024-03-24T10:31:14)
+rknn_driver=0.9.6
+rga_api=1.10.1_[1]
+input_memory=RKNN io_mem, NHWC UINT8, width_stride 640, size_with_stride 1228800, non-cacheable
+formal_command=/usr/bin/p2_person_detect_async --duration-sec 60 --warmup 10 --json /tmp/p243-iomem-60.json
+equivalence_command=/usr/bin/p2_person_detect_async --duration-sec 5 --warmup 0 --verify-source 5 --json /tmp/p243-iomem-equivalence-clean.json
+restart_command=/tmp/p2_p24_restart_gate.sh 20

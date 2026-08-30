@@ -1,0 +1,36 @@
+rga_api version 1.10.1_[1]
+P2.4 async person detector: visible=/dev/video45 queue_capacity=1 rotation=270cw source_memory=dmabuf rknn_input=io-mem transport=V4L2_MMAP_buffer_lease full_frame_cpu_copies=0
+{
+  "application_commit": "19fdb295f857",
+  "visible_device": "/dev/video45",
+  "model_path": "/usr/share/p2/models/yolov5s-640-640.rknn",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rotation": "270cw",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "transport": {"capture_memory": "V4L2_MMAP", "handoff": "buffer_lease", "rga_source": "V4L2_EXPBUF_importbuffer_fd", "application_full_frame_cpu_copies": 0, "dmabuf_source": true, "rknn_input": "io-mem", "end_to_end_zero_copy": false},
+  "capture": {"width": 3840, "height": 2160, "bytes_per_line": 3840, "allocated_buffers": 6, "lease_high_watermark": 2, "exported_dma_buffers": 6, "dqbuf_count": 52, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_monotonic_timestamp": 0},
+  "queue": {"capacity": 1, "pushed": 51, "popped": 51, "controlled_drop_oldest": 0, "shutdown_drops": 0, "closed_rejections": 1, "high_watermark": 1, "pending": 0},
+  "processed_sequence_gaps": {"events": 0, "frames": 0},
+  "source_equivalence": {"requested": 0, "checks": 0, "mismatches": 0},
+  "run_elapsed_seconds": 1.915,
+  "capture_fps": 27.161,
+  "inference_frames": 51,
+  "warmup_frames": 0,
+  "measured_frames": 51,
+  "measured_elapsed_seconds": 1.665,
+  "measured_fps": 30.623,
+  "frames_with_person": 5,
+  "person_detections": 6,
+  "rga_dmabuf_import_count": 6,
+  "rknn_io_mem": {"enabled": true, "width_stride": 640, "size_with_stride": 1228800, "non_cacheable": true},
+  "latency": {
+    "queue_age": {"p50_ms": 0.119, "p95_ms": 4.912, "p99_ms": 8.274, "max_ms": 9.333},
+    "rga_dmabuf_import": {"p50_ms": 0.002, "p95_ms": 2.291, "p99_ms": 3.610, "max_ms": 4.743},
+    "rga": {"p50_ms": 6.824, "p95_ms": 7.247, "p99_ms": 7.427, "max_ms": 7.476},
+    "rknn": {"p50_ms": 21.991, "p95_ms": 24.725, "p99_ms": 25.384, "max_ms": 25.408},
+    "postprocess": {"p50_ms": 0.995, "p95_ms": 2.008, "p99_ms": 2.306, "max_ms": 2.469},
+    "inference_total": {"p50_ms": 29.880, "p95_ms": 33.654, "p99_ms": 34.480, "max_ms": 34.722},
+    "capture_to_inference_end": {"p50_ms": 31.153, "p95_ms": 36.391, "p99_ms": 39.275, "max_ms": 40.447}
+  }
+}

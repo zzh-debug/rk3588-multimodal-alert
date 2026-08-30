@@ -1,7 +1,7 @@
 # 项目二：RK3588 可见光-热成像协同感知与低照度预警
 
 > 文档角色：项目二终极目标、依赖和成果门禁的唯一入口<br>
-> 当前阶段：P2.1、P2.3已关闭，P2.2温度处理已通过；P2.4.1解耦及P2.4.2a DMA-BUF源路径已通过板端门禁，下一步评估RKNN io_mem<br>
+> 当前阶段：P2.1、P2.3已关闭，P2.2温度处理已通过；P2.4采集/RGA/RKNN Buffer优化已通过板端门禁，下一步接入人员框与粗粒度热ROI融合<br>
 > 目标平台：ATK-DLRK3588，RK3588 异构计算平台<br>
 > 上游门禁：已具备经目标原厂IQ和AIQ 3A处理的IMX415 4K NV12、MLX90640 ZMLX成对热阵列、双单调时间戳ABI和PWM LED接口
 
@@ -37,7 +37,7 @@
 | MLX90640 温度算法 | P2.2.1/P2.2.2完成 | Melexis Apache-2.0 API按原始哈希引入；真实EEPROM和ZMLX离线重复通过；有时间戳约束的EMA和确定性五段伪彩已接入；600/600实时pair无NaN、异常重置或处理错误 | 只有接入参考温度计后才做绝对温度误差门禁 |
 | 跨光谱区域映射 | P2.2.3软件基线完成，首轮真实配置按临时可用冻结 | D110/`MLX90640-ESF-BAA`、110°×75°已确认；GUI完成9个拟合点和4个独立验证点；配置已保存，但验证最大误差约232 px，未通过原120 px正式门限 | 后续有需要时重做正式误差门禁；当前P2.4仅使用扩张后的粗粒度热ROI |
 | RGA + RKNN 人员检测 | P2.3正式关闭 | 旧姿态达到28.187 FPS、端到端P95 39.648 ms；当前安装确认`270cw`正立；125张当前场景小样本含26个人实例和99张无人负样本，TP=26、FP=0、FN=0，Precision/Recall/F1均为1.0 | 结果仅限当前设备、单人、实验室正常照明；P2.4消除同步推理造成的采集序号跳变 |
-| DMA-BUF 多池流水线 | P2.4.1及P2.4.2a完成，RKNN io_mem未完成 | MMAP Buffer租约+容量1队列；6/6 V4L2 EXPBUF并缓存6个RGA fd handle；60秒1796帧、采集/队列均0 gap，推理30.019 FPS，端到端P95 36.131 ms | 评估RKNN io_mem，补齐cache/fence、ownership异常和后续MPP多池证据 |
+| DMA-BUF 多池流水线 | P2.4采集/RGA/RKNN优化子阶段完成 | MMAP Buffer租约+容量1队列；6/6 V4L2 EXPBUF和6个RGA fd handle；RGA直写non-cacheable RKNN io_mem；60秒1796帧、采集/队列均0 gap，推理30.012 FPS，端到端P95 41.689 ms；20轮启停及SIGTERM重开通过 | 下一步接双路匹配和粗粒度热ROI融合；MPP/OSD池留P2.5 |
 | PWM 补光状态机 | 项目一硬件/驱动门禁通过，应用状态机未实现 | LED默认关、brightness调光和低亮度双路回归已通过 | 实现画面亮度+热目标滞回/冷却逻辑；无仪器时不宣称波形、电流和温升结论 |
 | MPP H.264 + RTSP + OSD | 未实现 | MPP、RKADK、MediaMTX、FFmpeg/GStreamer 存在 | 可解码码流、RTSP 重连、OSD、运行时长和故障数据 |
 
@@ -94,7 +94,7 @@ P2.3 RGA/RKNN实现、坐标契约、性能事实和未完成边界见
 `docs/P2.3.2真实人员样本验收.md`；该流程只评估现成模型，不训练模型。验收证据
 位于`evidence/stage3/2026-08-29/`，原始人物图片不进入Git。
 
-P2.4.1的MMAP Buffer租约、有界最新帧队列，以及P2.4.2a的V4L2 EXPBUF/RGA fd
-源路径见`docs/P2.4采集与推理解耦.md`，证据位于
-`evidence/stage4/2026-08-30/`。当前已消除采集和队列gap，但640×640 RGB仍通过
-`rknn_inputs_set`进入模型，明确不称端到端零拷贝。
+P2.4的MMAP Buffer租约、有界最新帧队列、V4L2 EXPBUF/RGA fd源路径和RKNN
+non-cacheable `io_mem`见`docs/P2.4采集与推理解耦.md`，证据位于
+`evidence/stage4/2026-08-30/`。当前已消除采集和队列gap；输出仍经
+`rknn_outputs_get`交给CPU后处理，明确不称端到端零拷贝。
