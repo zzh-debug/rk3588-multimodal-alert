@@ -1,0 +1,57 @@
+1970/01/02 19:57:23 INF MediaMTX v1.7.0
+1970/01/02 19:57:23 INF configuration loaded from /etc/mediamtx.yml
+1970/01/02 19:57:23 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+1970/01/02 19:57:23 INF [RTMP] listener opened on :1935
+1970/01/02 19:57:23 INF [HLS] listener opened on :8888
+1970/01/02 19:57:23 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
+1970/01/02 19:57:23 INF [SRT] listener opened on :8890 (UDP)
+1970/01/02 19:57:24 INF [RTSP] [conn 127.0.0.1:43636] opened
+1970/01/02 19:57:24 INF [RTSP] [session b01e83c6] created by 127.0.0.1:43636
+1970/01/02 19:57:24 INF [RTSP] [session b01e83c6] is publishing to path 'p2', 1 track (H264)
+1970/01/02 19:57:27 INF [RTSP] [conn 127.0.0.1:43640] opened
+1970/01/02 19:57:27 INF [RTSP] [session 3a804e69] created by 127.0.0.1:43640
+1970/01/02 19:57:27 INF [RTSP] [session 3a804e69] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/02 19:57:31 INF [RTSP] [session 3a804e69] destroyed: torn down by 127.0.0.1:43640
+1970/01/02 19:57:31 INF [RTSP] [conn 127.0.0.1:43640] closed: EOF
+1970/01/02 19:57:32 INF [RTSP] [session b01e83c6] destroyed: torn down by 127.0.0.1:43636
+1970/01/02 19:57:32 INF [RTSP] [conn 127.0.0.1:43636] closed: EOF
+1970/01/02 19:57:33 INF [RTSP] [conn 127.0.0.1:60754] opened
+1970/01/02 19:57:33 INF [RTSP] [session dfd9e066] created by 127.0.0.1:60754
+1970/01/02 19:57:33 INF [RTSP] [session dfd9e066] is publishing to path 'p2', 1 track (H264)
+1970/01/02 19:57:36 INF [RTSP] [conn 127.0.0.1:60760] opened
+1970/01/02 19:57:36 INF [RTSP] [session f1dc262d] created by 127.0.0.1:60760
+1970/01/02 19:57:36 INF [RTSP] [session f1dc262d] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/02 19:57:39 INF [RTSP] [session f1dc262d] destroyed: torn down by 127.0.0.1:60760
+1970/01/02 19:57:39 INF [RTSP] [conn 127.0.0.1:60760] closed: EOF
+1970/01/02 19:57:41 INF [RTSP] [session dfd9e066] destroyed: torn down by 127.0.0.1:60754
+1970/01/02 19:57:41 INF [RTSP] [conn 127.0.0.1:60754] closed: EOF
+1970/01/02 19:57:41 INF [RTSP] [conn 127.0.0.1:60772] opened
+1970/01/02 19:57:41 INF [RTSP] [session 17038162] created by 127.0.0.1:60772
+1970/01/02 19:57:41 INF [RTSP] [session 17038162] is publishing to path 'p2', 1 track (H264)
+1970/01/02 19:57:44 INF [RTSP] [conn 127.0.0.1:59696] opened
+1970/01/02 19:57:44 INF [RTSP] [session cd46275f] created by 127.0.0.1:59696
+1970/01/02 19:57:44 INF [RTSP] [session cd46275f] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/02 19:57:48 INF [RTSP] [session cd46275f] destroyed: torn down by 127.0.0.1:59696
+1970/01/02 19:57:48 INF [RTSP] [conn 127.0.0.1:59696] closed: EOF
+1970/01/02 19:57:49 INF [RTSP] [session 17038162] destroyed: torn down by 127.0.0.1:60772
+1970/01/02 19:57:49 INF [RTSP] [conn 127.0.0.1:60772] closed: EOF
+1970/01/02 19:57:50 INF [RTSP] [conn 127.0.0.1:59702] opened
+1970/01/02 19:57:50 INF [RTSP] [session 52ad6974] created by 127.0.0.1:59702
+1970/01/02 19:57:50 INF [RTSP] [session 52ad6974] is publishing to path 'p2', 1 track (H264)
+1970/01/02 19:57:53 INF [RTSP] [conn 127.0.0.1:59144] opened
+1970/01/02 19:57:53 INF [RTSP] [session 9440c631] created by 127.0.0.1:59144
+1970/01/02 19:57:53 INF [RTSP] [session 9440c631] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/02 19:57:56 INF [RTSP] [session 9440c631] destroyed: torn down by 127.0.0.1:59144
+1970/01/02 19:57:56 INF [RTSP] [conn 127.0.0.1:59144] closed: EOF
+1970/01/02 19:57:58 INF [RTSP] [session 52ad6974] destroyed: torn down by 127.0.0.1:59702
+1970/01/02 19:57:58 INF [RTSP] [conn 127.0.0.1:59702] closed: EOF
+1970/01/02 19:57:58 INF [RTSP] [conn 127.0.0.1:59158] opened
+1970/01/02 19:57:58 INF [RTSP] [session 81aa0148] created by 127.0.0.1:59158
+1970/01/02 19:57:58 INF [RTSP] [session 81aa0148] is publishing to path 'p2', 1 track (H264)
+1970/01/02 19:58:01 INF [RTSP] [conn 127.0.0.1:59170] opened
+1970/01/02 19:58:01 INF [RTSP] [session 0b532def] created by 127.0.0.1:59170
+1970/01/02 19:58:01 INF [RTSP] [session 0b532def] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/02 19:58:05 INF [RTSP] [session 0b532def] destroyed: torn down by 127.0.0.1:59170
+1970/01/02 19:58:05 INF [RTSP] [conn 127.0.0.1:59170] closed: EOF
+1970/01/02 19:58:06 INF [RTSP] [session 81aa0148] destroyed: torn down by 127.0.0.1:59158
+1970/01/02 19:58:06 INF [RTSP] [conn 127.0.0.1:59158] closed: EOF

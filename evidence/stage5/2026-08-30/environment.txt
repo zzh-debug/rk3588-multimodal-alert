@@ -1,0 +1,21 @@
+P2.5 implementation commit: b7887575f10351a24c9922c96bc0d0a30de4f0f4
+Board: ATK-DLRK3588
+Kernel: Linux 5.10.209 #14 aarch64
+Rootfs: Buildroot 2021.11, NFS root
+MediaMTX: v1.7.0
+FFmpeg: 4.4.1, libavformat 58
+RKNN API: 2.0.0b0 (35a6907d79@2024-03-24T10:31:14)
+RKNN driver: 0.9.6
+
+SHA-256:
+a6aa906b370df6514d284c733e867cdf0935514af7ac3714db8c483b379520c4  /usr/bin/p2_multimodal_fusion
+9e832e8f5378a25e60343502438d35ad5ce0fa875bba77123c2e2f9d95168735  /usr/bin/p2_mpp_stream
+7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71  /usr/share/p2/models/yolov5s-640-640.rknn
+940dc6765975a771a5d4d96c5be04a96036ea632bad0e01b7cb56b9744b4e654  /etc/p2/cross_spectral_calibration.conf
+570ccf904d7c2b1258fec6e2ef581dec02c4d5394c8237b2bbba3b1956e2f1a9  formal stream.h264 (not committed)
+288f5e18bb79b6cd94c432b7a672e4c189a7d4867e5f74ed85ad2cbb2b9785b5  demo stream.h264 (not committed)
+
+Runtime library MD5 (board image identification only):
+c459e2a937bcaa3ec9bce710e7c9981b  /lib/librockchip_mpp.so.1
+10b666123f38bc0d8147f38ab9f49296  /lib/librga.so.2
+a0e9611730f11cd9c4afcd5c2f1a8be6  /lib/libavformat.so.58

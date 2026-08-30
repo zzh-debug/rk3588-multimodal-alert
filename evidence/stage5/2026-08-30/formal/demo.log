@@ -1,0 +1,15 @@
+rga_api version 1.10.1_[1]
+{
+  "schema": "p2.mpp-stream.v1",
+  "result": "PASS",
+  "error": "",
+  "application_commit": "b7887575f103",
+  "elapsed_seconds": 3.036,
+  "visible_device": "/dev/video45",
+  "rtsp_url": "none",
+  "output": {"width": 1080, "height": 1920, "fps": 30, "bitrate_bps": 6000000},
+  "capture": {"dqbuf": 85, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0, "lease_high_watermark": 1},
+  "queue": {"pushed": 84, "popped": 84, "drop_oldest": 0, "high_watermark": 1},
+  "encoder": {"frames": 84, "bytes": 2015661, "key_frames": 2, "source_dma_buf_imports": 6, "osd_frames": 84, "average_rga_ms": 8.544, "average_mpp_ms": 5.252},
+  "publisher": {"packets": 0, "bytes": 0, "failures": 0}
+}

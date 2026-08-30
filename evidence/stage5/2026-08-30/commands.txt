@@ -1,0 +1,26 @@
+# Build in the RK3588 Dev Container as user vscode
+cd /rk3588_dev/projects/rk3588_multimodal_alert
+./scripts/build_native.sh
+./scripts/build_aarch64.sh
+
+# Deploy from Ubuntu host after verifying board NFS root
+scp build/aarch64/p2_mpp_stream build/aarch64/p2_multimodal_fusion \
+    atk-dlrk3588:/usr/bin/
+ssh atk-dlrk3588 'chmod 755 /usr/bin/p2_mpp_stream /usr/bin/p2_multimodal_fusion'
+
+# Formal 60-second encoding, OSD, RTSP and two-reader gate
+scp scripts/p2_p25_stream_gate.sh scripts/p2_p25_restart_gate.sh \
+    atk-dlrk3588:/tmp/
+ssh atk-dlrk3588 'chmod 700 /tmp/p2_p25_*_gate.sh'
+ssh atk-dlrk3588 '/tmp/p2_p25_stream_gate.sh /tmp/p2-p25-formal'
+
+# Five rounds of RTSP-only application restart and reader gate
+ssh atk-dlrk3588 '/tmp/p2_p25_restart_gate.sh /tmp/p2-p25-restart'
+
+# Deterministic MPP OSD rendering gate
+/usr/bin/p2_mpp_stream --duration-sec 3 --rtsp-url none --demo-overlay \
+    --h264-output /tmp/p2-p25-demo.h264 \
+    --summary /tmp/p2-p25-demo.json
+ffprobe -v error -select_streams v:0 -count_frames \
+    -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,nb_read_frames \
+    -of json /tmp/p2-p25-demo.h264
