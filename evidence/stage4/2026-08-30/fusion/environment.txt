@@ -1,0 +1,17 @@
+evidence_date=2026-08-30
+implementation_commit=d9507a8f5572
+thermal_repair_commit=2b1a59cb6dc3
+board_hostname=ATK-DLRK3588
+board_kernel=Linux 5.10.209 #14 aarch64
+rootfs=192.168.5.11:/home/zzh/workspace/myproject/nfs_rootfs/atk_dlrk3588 (NFSv3,rw)
+rknn_api=2.0.0b0 (35a6907d79@2024-03-24T10:31:14)
+rknn_driver=0.9.6
+model_sha256=7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71
+calibration_sha256=940dc6765975a771a5d4d96c5be04a96036ea632bad0e01b7cb56b9744b4e654
+eeprom_sha256=cc4628409b57ca3137065b10fd40c684fcef9d16ab493ace882710ad490185b2
+p2_multimodal_fusion_sha256=56bfcf1cfdde464477a8713fdbda86e27f8ee2add60894d7bee94eb7ca63d0a6
+calibration_id=gui-19700101-215303
+calibration_nominal_distance_mm=1000
+calibration_fit_max_error_px=146.69260058789612
+calibration_independent_validation_max_error_px_approx=232
+runtime_mapping_margin_px=240

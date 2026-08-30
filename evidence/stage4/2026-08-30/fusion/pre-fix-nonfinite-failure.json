@@ -1,0 +1,22 @@
+{
+  "schema": "p2.multimodal-fusion.v1",
+  "result": "FAIL",
+  "error": "thermal math failed: non-finite thermal result: temperature=767/768 image=768/768",
+  "application_commit": "d9507a8f5572",
+  "elapsed_seconds": 11.290,
+  "visible_device": "/dev/video45",
+  "thermal_device": "/dev/video0",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "calibration": {"id": "gui-19700101-215303", "nominal_distance_mm": 1000.000, "fit_max_error_px": 146.693, "provisional": true},
+  "fusion_config": {"hot_absolute_c": 30.000, "hot_delta_c": 4.000, "hot_min_pixels": 2, "mapping_margin_px": 240.000, "minimum_overlap": 0.100, "confirm_frames": 2, "release_frames": 3, "cooldown_ms": 1000},
+  "visible_capture": {"dqbuf": 332, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0, "exported_dma_buffers": 6},
+  "thermal_capture": {"valid_pairs": 82, "sequence_gaps": 0, "invalid_payloads": 0, "timestamp_mismatches": 0},
+  "visible_queue": {"pushed": 332, "popped": 332, "drop_oldest": 0, "pending": 0},
+  "fusion_queue": {"pushed": 81, "popped": 81, "drop_oldest": 0, "pending": 0},
+  "temporal_join": {"visible_received": 332, "thermal_received": 81, "matched": 81, "unmatched_skew": 0, "emitted_pairs": 81, "missing_visible_results": 0, "missing_thermal_results": 0},
+  "processing": {"inference_frames": 332, "inference_failures": 0, "person_detections": 495, "thermal_frames": 81, "math_failures": 1, "filter_failures": 0, "filter_accepted_frames": 81},
+  "fusion": {"processed_pairs": 81, "failures": 0, "evidence_frames": 59, "active_frames": 60, "activations": 2, "deactivations": 1, "people": 120, "hot_regions": 104, "matches": 59},
+  "latency": {"absolute_skew_p50_ms": 6.823, "absolute_skew_p95_ms": 15.441, "absolute_skew_max_ms": 16.187, "inference_total_p50_ms": 29.075, "inference_total_p95_ms": 35.341, "fusion_p50_ms": 0.087, "fusion_p95_ms": 0.354}
+}

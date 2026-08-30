@@ -1,0 +1,6 @@
+{
+  "schema": "p2.multimodal-fusion-restart.v1",
+  "result": "PASS",
+  "rounds": 5,
+  "fused_pair_target_per_round": 5
+}

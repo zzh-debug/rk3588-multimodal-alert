@@ -1,0 +1,22 @@
+{
+  "schema": "p2.multimodal-fusion.v1",
+  "result": "PASS",
+  "error": "",
+  "application_commit": "2b1a59cb6dc3",
+  "elapsed_seconds": 0.978,
+  "visible_device": "/dev/video45",
+  "thermal_device": "/dev/video0",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "calibration": {"id": "gui-19700101-215303", "nominal_distance_mm": 1000.000, "fit_max_error_px": 146.693, "provisional": true},
+  "fusion_config": {"hot_absolute_c": 30.000, "hot_delta_c": 4.000, "hot_min_pixels": 2, "mapping_margin_px": 240.000, "minimum_overlap": 0.100, "confirm_frames": 2, "release_frames": 3, "cooldown_ms": 1000},
+  "visible_capture": {"dqbuf": 20, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0, "exported_dma_buffers": 6},
+  "thermal_capture": {"valid_pairs": 6, "sequence_gaps": 0, "invalid_payloads": 0, "timestamp_mismatches": 0},
+  "visible_queue": {"pushed": 20, "popped": 20, "drop_oldest": 0, "pending": 0},
+  "fusion_queue": {"pushed": 6, "popped": 6, "drop_oldest": 0, "pending": 0},
+  "temporal_join": {"visible_received": 20, "thermal_received": 6, "matched": 6, "unmatched_skew": 0, "emitted_pairs": 6, "missing_visible_results": 0, "missing_thermal_results": 0},
+  "processing": {"inference_frames": 20, "inference_failures": 0, "person_detections": 20, "thermal_frames": 6, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 6},
+  "fusion": {"processed_pairs": 6, "failures": 0, "evidence_frames": 6, "active_frames": 5, "activations": 1, "deactivations": 0, "people": 6, "hot_regions": 8, "matches": 6},
+  "latency": {"absolute_skew_p50_ms": 11.401, "absolute_skew_p95_ms": 36.541, "absolute_skew_max_ms": 36.541, "inference_total_p50_ms": 27.624, "inference_total_p95_ms": 34.903, "fusion_p50_ms": 0.255, "fusion_p95_ms": 0.263}
+}

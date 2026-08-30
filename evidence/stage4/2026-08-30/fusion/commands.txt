@@ -1,0 +1,19 @@
+# Native build and tests (RK3588 Dev Container, user vscode)
+cd /rk3588_dev/projects/rk3588_multimodal_alert
+./scripts/build_native.sh
+
+# AArch64 build
+./scripts/build_aarch64.sh
+
+# Deploy from Ubuntu host
+scp build/aarch64/p2_multimodal_fusion atk-dlrk3588:/usr/bin/p2_multimodal_fusion
+ssh atk-dlrk3588 'chmod 755 /usr/bin/p2_multimodal_fusion'
+
+# Formal 60-second fusion gate
+ssh atk-dlrk3588 '/usr/bin/p2_multimodal_fusion --duration-sec 60 --summary /tmp/p2-fusion-60s.json --events /tmp/p2-fusion-60s.csv'
+
+# Counterfactual: preserve person inference but suppress ordinary thermal ROIs
+ssh atk-dlrk3588 '/usr/bin/p2_multimodal_fusion --duration-sec 15 --hot-absolute-c 45 --summary /tmp/p2-fusion-thermal-suppressed.json --events /tmp/p2-fusion-thermal-suppressed.csv'
+
+# Five complete process restart rounds, at least five fused pairs per round
+ssh atk-dlrk3588 '/tmp/p2_p24_fusion_restart_gate.sh 5 /tmp/p2-fusion-restart'
