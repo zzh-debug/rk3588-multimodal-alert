@@ -125,6 +125,18 @@ add_library(p2_sync STATIC
 target_include_directories(p2_sync PUBLIC include)
 target_compile_options(p2_sync PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
+add_library(p2_fusion STATIC
+    src/fusion/multimodal_fusion.cpp
+    src/fusion/temporal_joiner.cpp
+)
+target_include_directories(p2_fusion PUBLIC include)
+target_link_libraries(p2_fusion PUBLIC
+    p2_calibration p2_inference_math p2_sync p2_thermal
+)
+target_compile_options(p2_fusion PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 if(BUILD_TESTING)
     add_executable(test_frame_synchronizer tests/test_frame_synchronizer.cpp)
     target_link_libraries(test_frame_synchronizer PRIVATE p2_sync)
@@ -193,6 +205,14 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME bounded_latest_queue COMMAND test_bounded_queue)
+
+    add_executable(test_multimodal_fusion
+        tests/test_multimodal_fusion.cpp)
+    target_link_libraries(test_multimodal_fusion PRIVATE p2_fusion)
+    target_compile_options(test_multimodal_fusion PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME multimodal_fusion COMMAND test_multimodal_fusion)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -384,6 +404,26 @@ if(P2_BUILD_HARDWARE)
         -Wall -Wextra -Wpedantic -Werror
     )
 
+    add_executable(p2_multimodal_fusion
+        app/p2_multimodal_fusion.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+        src/capture/thermal_capture.cpp
+    )
+    target_include_directories(p2_multimodal_fusion PRIVATE include)
+    target_include_directories(p2_multimodal_fusion SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_multimodal_fusion PRIVATE
+        p2_fusion p2_person_detector p2_thermal Threads::Threads
+    )
+    target_compile_definitions(p2_multimodal_fusion PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_multimodal_fusion PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+
     add_executable(p2_person_detect_nv12
         app/p2_person_detect_nv12.cpp
     )
@@ -423,6 +463,7 @@ if(P2_BUILD_HARDWARE)
         p2_calibration_fit
         p2_person_detect
         p2_person_detect_async
+        p2_multimodal_fusion
         p2_person_detect_nv12
         p2_person_dataset_capture
         p2_person_evaluate

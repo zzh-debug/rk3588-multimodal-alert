@@ -43,6 +43,7 @@ public:
 
     SynchronizerStats stats() const;
     std::vector<MatchRecord> matches() const;
+    std::vector<MatchRecord> drain_matches();
 
 private:
     void process_pending_locked(bool force);

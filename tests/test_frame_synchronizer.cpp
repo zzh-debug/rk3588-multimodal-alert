@@ -115,6 +115,7 @@ void test_out_of_order_visible_is_sorted()
     synchronizer.push_visible(visible(2, 130));
     synchronizer.push_visible(visible(1, 100));
     synchronizer.push_thermal(thermal(1, 105));
+    synchronizer.flush();
 
     const auto matches = synchronizer.matches();
     const auto stats = synchronizer.stats();
@@ -122,6 +123,31 @@ void test_out_of_order_visible_is_sorted()
             "out-of-order visible event was not sorted");
     require(stats.visible_out_of_order == 1,
             "out-of-order visible event was not counted");
+}
+
+void test_matches_can_be_drained_without_growth()
+{
+    p2::SynchronizerConfig config;
+    config.lookahead_ns = 0;
+    config.max_skew_ns = 100;
+    p2::FrameSynchronizer synchronizer(config);
+    synchronizer.push_visible(visible(1, 100));
+    synchronizer.push_thermal(thermal(1, 105));
+    synchronizer.flush();
+
+    const auto first = synchronizer.drain_matches();
+    require(first.size() == 1 && first[0].thermal_sequence == 1,
+            "drain did not return the pending match");
+    require(synchronizer.matches().empty(),
+            "drain left an accumulated match behind");
+    require(synchronizer.drain_matches().empty(),
+            "second drain unexpectedly returned the old match");
+
+    synchronizer.push_visible(visible(2, 200));
+    synchronizer.push_thermal(thermal(2, 205));
+    synchronizer.flush();
+    require(synchronizer.drain_matches().size() == 1,
+            "synchronizer stopped producing matches after a drain");
 }
 
 void test_event_queue_is_bounded_and_classifies_drops()
@@ -158,6 +184,7 @@ int main()
         test_thermal_waits_for_visible_lookahead();
         test_bounded_thermal_queue_counts_drop();
         test_out_of_order_visible_is_sorted();
+        test_matches_can_be_drained_without_growth();
         test_event_queue_is_bounded_and_classifies_drops();
     } catch (const std::exception &error) {
         std::cerr << "FAIL: " << error.what() << '\n';

@@ -105,6 +105,14 @@ std::vector<MatchRecord> FrameSynchronizer::matches() const
     return matches_;
 }
 
+std::vector<MatchRecord> FrameSynchronizer::drain_matches()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::vector<MatchRecord> result;
+    result.swap(matches_);
+    return result;
+}
+
 void FrameSynchronizer::process_pending_locked(bool force)
 {
     while (!thermal_.empty()) {
