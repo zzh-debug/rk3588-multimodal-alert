@@ -16,6 +16,9 @@ ssh atk-dlrk3588 '/tmp/p2_p27_reliability_gate.sh'
 # 60-second RTSP long-stability gate
 ssh atk-dlrk3588 '/tmp/p2_p27_long_gate.sh'
 
+# Two-hour gate followed by an automatic 3-second camera reopen check
+ssh atk-dlrk3588 'P2_DURATION_SEC=7200 /tmp/p2_p27_long_gate.sh /tmp/p2-p27-2h-20260830'
+
 # Final safety check
 ssh atk-dlrk3588 'cat /sys/class/leds/zzh:white:fill/brightness; \
     grep -A1 white-fill /sys/kernel/debug/pwm; \

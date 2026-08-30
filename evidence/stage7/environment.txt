@@ -12,3 +12,6 @@ MPP stream dependency SHA-256:
 LED: /sys/class/leds/zzh:white:fill, safety limit 32/255
 PWM: period 50000 ns, normal polarity
 Final gate LED: brightness 0, duty 0 ns
+Long-gate script commit: 72ffe91c048cc7a046136378539d57987a1da3d0
+Two-hour result: PASS, 7200.083 seconds
+Reopen result: PASS, 3.154 seconds
