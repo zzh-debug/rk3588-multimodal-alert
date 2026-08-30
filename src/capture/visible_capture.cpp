@@ -23,6 +23,7 @@ namespace {
 struct MappedPlane {
     void *address = nullptr;
     std::size_t length = 0;
+    int dma_buf_fd = -1;
 };
 
 void set_error(std::string *error, const std::string &operation)
@@ -49,6 +50,8 @@ public:
             streaming_ = false;
         }
         for (const MappedPlane &buffer : buffers_) {
+            if (buffer.dma_buf_fd >= 0)
+                close(buffer.dma_buf_fd);
             if (buffer.address != nullptr)
                 munmap(buffer.address, buffer.length);
         }
@@ -292,6 +295,19 @@ bool VisibleCapture::run_leased_frames(
             set_error(error, "mmap visible");
             return false;
         }
+        if (config_.export_dma_buf) {
+            v4l2_exportbuffer exported{};
+            exported.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+            exported.index = index;
+            exported.plane = 0;
+            exported.flags = O_CLOEXEC | O_RDWR;
+            if (session->ioctl(VIDIOC_EXPBUF, &exported) < 0) {
+                set_error(error, "VIDIOC_EXPBUF visible");
+                return false;
+            }
+            mapped.dma_buf_fd = exported.fd;
+            ++stats_.exported_dma_buffers;
+        }
         if (session->ioctl(VIDIOC_QBUF, &buffer) < 0) {
             set_error(error, "VIDIOC_QBUF visible initial");
             return false;
@@ -378,6 +394,8 @@ bool VisibleCapture::run_leased_frames(
         frame.width = stats_.width;
         frame.height = stats_.height;
         frame.bytes_per_line = stats_.bytes_per_line;
+        frame.data_offset = plane.data_offset;
+        frame.dma_buf_fd = mapped.dma_buf_fd;
         stats_.lease_high_watermark = session->mark_leased();
         VisibleFrameLease lease(frame, buffer.index, session);
         on_frame(std::move(lease));

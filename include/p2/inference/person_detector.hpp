@@ -27,9 +27,11 @@ struct PersonDetectorRuntimeInfo {
     std::uint32_t model_channels = 0;
     std::uint32_t input_count = 0;
     std::uint32_t output_count = 0;
+    std::uint64_t dma_buf_import_count = 0;
 };
 
 struct PersonInferenceTiming {
+    double rga_import_ms = 0.0;
     double rga_ms = 0.0;
     double rknn_ms = 0.0;
     double postprocess_ms = 0.0;
@@ -58,6 +60,13 @@ public:
                     std::uint32_t bytes_per_line,
                     PersonInferenceResult *result,
                     std::string *error);
+    bool infer_nv12_dmabuf(int dma_buf_fd,
+                          std::size_t size,
+                          std::uint32_t width,
+                          std::uint32_t height,
+                          std::uint32_t bytes_per_line,
+                          PersonInferenceResult *result,
+                          std::string *error);
     const PersonDetectorRuntimeInfo &runtime_info() const;
 
 private:

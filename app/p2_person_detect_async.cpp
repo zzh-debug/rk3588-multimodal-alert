@@ -36,9 +36,11 @@ struct Options {
     std::string model = "/usr/share/p2/models/yolov5s-640-640.rknn";
     std::string json_output;
     std::string detection_csv;
+    std::string source_memory = "dmabuf";
     std::uint64_t duration_seconds = 60;
     std::uint64_t maximum_frames = 0;
     std::uint64_t warmup_frames = 10;
+    std::uint64_t source_equivalence_frames = 0;
     std::size_t queue_capacity = 1;
     p2::ImageRotation rotation = p2::ImageRotation::kClockwise270;
     float confidence_threshold = 0.25F;
@@ -52,10 +54,13 @@ struct RunStats {
     std::uint64_t person_detections = 0;
     std::uint64_t processed_sequence_gap_events = 0;
     std::uint64_t processed_sequence_gap_frames = 0;
+    std::uint64_t source_equivalence_checks = 0;
+    std::uint64_t source_equivalence_mismatches = 0;
     bool have_previous_sequence = false;
     std::uint32_t previous_sequence = 0;
     std::vector<double> queue_age_ms;
     std::vector<double> end_to_end_ms;
+    std::vector<double> rga_import_ms;
     std::vector<double> rga_ms;
     std::vector<double> rknn_ms;
     std::vector<double> post_ms;
@@ -77,6 +82,8 @@ void usage(const char *program)
         << "  --frames N           measured frame limit, 0 means duration only\n"
         << "  --warmup N           warm-up frames excluded from timing, default 10\n"
         << "  --queue-capacity N   drop-oldest queue size, 1..4, default 1\n"
+        << "  --source-memory M    mmap or dmabuf; default dmabuf\n"
+        << "  --verify-source N   compare dmabuf/mmap results for N frames\n"
         << "  --rotation VALUE     0, 90cw, 180 or 270cw; default 270cw\n"
         << "  --confidence VALUE   person confidence threshold, default 0.25\n"
         << "  --nms VALUE          person NMS IoU threshold, default 0.45\n"
@@ -126,6 +133,8 @@ bool parse_options(int argc, char **argv, Options *options)
             options->json_output = value;
         else if (argument == "--detections")
             options->detection_csv = value;
+        else if (argument == "--source-memory")
+            options->source_memory = value;
         else if (argument == "--duration-sec") {
             if (!parse_u64(value, &options->duration_seconds) ||
                 options->duration_seconds == 0)
@@ -141,6 +150,9 @@ bool parse_options(int argc, char **argv, Options *options)
             if (!parse_u64(value, &parsed))
                 return false;
             options->queue_capacity = static_cast<std::size_t>(parsed);
+        } else if (argument == "--verify-source") {
+            if (!parse_u64(value, &options->source_equivalence_frames))
+                return false;
         } else if (argument == "--rotation") {
             if (!p2::parse_image_rotation(value, &options->rotation))
                 return false;
@@ -154,12 +166,37 @@ bool parse_options(int argc, char **argv, Options *options)
             return false;
         }
     }
-    return !options->model.empty() && options->duration_seconds <= 86400U &&
+    return !options->model.empty() &&
+        (options->source_memory == "mmap" ||
+         options->source_memory == "dmabuf") &&
+        (options->source_memory == "dmabuf" ||
+         options->source_equivalence_frames == 0U) &&
+        options->duration_seconds <= 86400U &&
         options->warmup_frames <= 1000U && options->queue_capacity >= 1U &&
+        options->source_equivalence_frames <= 100U &&
         options->queue_capacity <= 4U &&
         options->confidence_threshold > 0.0F &&
         options->confidence_threshold < 1.0F && options->nms_threshold > 0.0F &&
         options->nms_threshold < 1.0F;
+}
+
+bool inference_results_equivalent(const p2::PersonInferenceResult &left,
+                                  const p2::PersonInferenceResult &right)
+{
+    if (left.detections.size() != right.detections.size())
+        return false;
+    constexpr float tolerance = 1.0e-4F;
+    for (std::size_t index = 0; index < left.detections.size(); ++index) {
+        const p2::PersonDetection &a = left.detections[index];
+        const p2::PersonDetection &b = right.detections[index];
+        if (std::fabs(a.confidence - b.confidence) > tolerance ||
+            std::fabs(a.box.left - b.box.left) > tolerance ||
+            std::fabs(a.box.top - b.box.top) > tolerance ||
+            std::fabs(a.box.right - b.box.right) > tolerance ||
+            std::fabs(a.box.bottom - b.box.bottom) > tolerance)
+            return false;
+    }
+    return true;
 }
 
 double percentile(std::vector<double> values, double quantile)
@@ -222,15 +259,22 @@ void write_summary(std::ostream &output,
            << "  \"rknn_driver_version\": \""
            << json_escape(runtime.rknn_driver_version) << "\",\n"
            << "  \"transport\": {\"capture_memory\": \"V4L2_MMAP\", "
-              "\"handoff\": \"buffer_lease\", "
-              "\"application_full_frame_cpu_copies\": 0, "
-              "\"dmabuf\": false},\n"
+              "\"handoff\": \"buffer_lease\", \"rga_source\": \""
+           << (options.source_memory == "dmabuf"
+                   ? "V4L2_EXPBUF_importbuffer_fd"
+                   : "MMAP_virtual_address")
+           << "\", \"application_full_frame_cpu_copies\": 0, "
+              "\"dmabuf_source\": "
+           << (options.source_memory == "dmabuf" ? "true" : "false")
+           << ", \"end_to_end_zero_copy\": false},\n"
            << "  \"capture\": {\"width\": " << capture.width
            << ", \"height\": " << capture.height
            << ", \"bytes_per_line\": " << capture.bytes_per_line
            << ", \"allocated_buffers\": " << capture.allocated_buffers
            << ", \"lease_high_watermark\": "
            << capture.lease_high_watermark
+           << ", \"exported_dma_buffers\": "
+           << capture.exported_dma_buffers
            << ", \"dqbuf_count\": " << capture.dqbuf_count
            << ", \"sequence_gaps\": " << capture.sequence_gaps
            << ", \"bad_bytes_used\": " << capture.bad_bytes_used
@@ -247,6 +291,10 @@ void write_summary(std::ostream &output,
            << "  \"processed_sequence_gaps\": {\"events\": "
            << stats.processed_sequence_gap_events << ", \"frames\": "
            << stats.processed_sequence_gap_frames << "},\n"
+           << "  \"source_equivalence\": {\"requested\": "
+           << options.source_equivalence_frames << ", \"checks\": "
+           << stats.source_equivalence_checks << ", \"mismatches\": "
+           << stats.source_equivalence_mismatches << "},\n"
            << "  \"run_elapsed_seconds\": " << run_elapsed_seconds << ",\n"
            << "  \"capture_fps\": "
            << (run_elapsed_seconds > 0.0
@@ -269,8 +317,12 @@ void write_summary(std::ostream &output,
            << ",\n"
            << "  \"person_detections\": " << stats.person_detections
            << ",\n"
+           << "  \"rga_dmabuf_import_count\": "
+           << runtime.dma_buf_import_count << ",\n"
            << "  \"latency\": {\n";
     write_latency_json(output, "queue_age", stats.queue_age_ms, true);
+    write_latency_json(output, "rga_dmabuf_import", stats.rga_import_ms,
+                       true);
     write_latency_json(output, "rga", stats.rga_ms, true);
     write_latency_json(output, "rknn", stats.rknn_ms, true);
     write_latency_json(output, "postprocess", stats.post_ms, true);
@@ -312,6 +364,7 @@ int main(int argc, char **argv)
     std::cout << "P2.4 async person detector: visible=" << options.visible
               << " queue_capacity=" << options.queue_capacity
               << " rotation=" << p2::image_rotation_name(options.rotation)
+              << " source_memory=" << options.source_memory
               << " transport=V4L2_MMAP_buffer_lease"
               << " full_frame_cpu_copies=0\n";
 
@@ -325,7 +378,8 @@ int main(int argc, char **argv)
         }
         detection_csv
             << "sequence,timestamp_ns,confidence,left,top,right,bottom,"
-               "queue_age_ms,rga_ms,rknn_ms,postprocess_ms,total_ms,"
+               "queue_age_ms,rga_import_ms,rga_ms,rknn_ms,postprocess_ms,"
+               "total_ms,"
                "capture_to_inference_end_ms\n";
     }
 
@@ -334,7 +388,8 @@ int main(int argc, char **argv)
     p2::BoundedLatestQueue<p2::VisibleFrameLease> queue(
         options.queue_capacity);
     p2::VisibleCapture capture({options.visible, 3840, 2160,
-                                kCaptureBufferCount, 500});
+                                kCaptureBufferCount, 500,
+                                options.source_memory == "dmabuf"});
     bool capture_ok = false;
     std::string capture_error;
     const auto run_begin = std::chrono::steady_clock::now();
@@ -372,9 +427,42 @@ int main(int argc, char **argv)
                   1.0e6
             : 0.0;
         p2::PersonInferenceResult result;
-        if (!detector.infer_nv12(frame.data, frame.size, frame.width,
-                                 frame.height, frame.bytes_per_line,
-                                 &result, &inference_error)) {
+        bool inference_ok = false;
+        if (options.source_memory == "dmabuf") {
+            if (frame.data_offset != 0U) {
+                inference_error =
+                    "RGA DMA-BUF source does not support nonzero data_offset";
+            } else {
+                inference_ok = detector.infer_nv12_dmabuf(
+                    frame.dma_buf_fd, frame.size, frame.width, frame.height,
+                    frame.bytes_per_line, &result, &inference_error);
+                if (inference_ok && stats.source_equivalence_checks <
+                                        options.source_equivalence_frames) {
+                    p2::PersonInferenceResult mmap_result;
+                    std::string mmap_error;
+                    if (!detector.infer_nv12(
+                            frame.data, frame.size, frame.width, frame.height,
+                            frame.bytes_per_line, &mmap_result, &mmap_error)) {
+                        inference_error =
+                            "MMAP equivalence inference failed: " + mmap_error;
+                        inference_ok = false;
+                    } else {
+                        ++stats.source_equivalence_checks;
+                        if (!inference_results_equivalent(result, mmap_result)) {
+                            ++stats.source_equivalence_mismatches;
+                            inference_error =
+                                "DMA-BUF/MMAP inference result mismatch";
+                            inference_ok = false;
+                        }
+                    }
+                }
+            }
+        } else {
+            inference_ok = detector.infer_nv12(
+                frame.data, frame.size, frame.width, frame.height,
+                frame.bytes_per_line, &result, &inference_error);
+        }
+        if (!inference_ok) {
             g_stop.store(true);
             lease.reset();
             queue.close(true);
@@ -396,6 +484,7 @@ int main(int argc, char **argv)
                 ++stats.frames_with_person;
             stats.person_detections += result.detections.size();
             stats.queue_age_ms.push_back(queue_age_ms);
+            stats.rga_import_ms.push_back(result.timing.rga_import_ms);
             stats.rga_ms.push_back(result.timing.rga_ms);
             stats.rknn_ms.push_back(result.timing.rknn_ms);
             stats.post_ms.push_back(result.timing.postprocess_ms);
@@ -412,6 +501,7 @@ int main(int argc, char **argv)
                                   << detection.box.right << ','
                                   << detection.box.bottom << ','
                                   << queue_age_ms << ','
+                                  << result.timing.rga_import_ms << ','
                                   << result.timing.rga_ms << ','
                                   << result.timing.rknn_ms << ','
                                   << result.timing.postprocess_ms << ','

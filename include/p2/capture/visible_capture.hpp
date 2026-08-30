@@ -18,6 +18,7 @@ struct VisibleCaptureConfig {
     std::uint32_t height = 2160;
     std::uint32_t requested_buffers = 6;
     int poll_timeout_ms = 500;
+    bool export_dma_buf = false;
 };
 
 struct VisibleCaptureStats {
@@ -34,6 +35,7 @@ struct VisibleCaptureStats {
     std::uint32_t size_image = 0;
     std::uint32_t allocated_buffers = 0;
     std::uint32_t lease_high_watermark = 0;
+    std::uint32_t exported_dma_buffers = 0;
 };
 
 class VisibleFrameLease {

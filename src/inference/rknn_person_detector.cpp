@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -74,6 +75,10 @@ struct RknnPersonDetector::Impl {
 
     ~Impl()
     {
+        for (const auto &entry : dma_buf_handles)
+            releasebuffer_handle(entry.second.handle);
+        if (rgb_input_handle != 0)
+            releasebuffer_handle(rgb_input_handle);
         if (context != 0)
             rknn_destroy(context);
     }
@@ -84,7 +89,20 @@ struct RknnPersonDetector::Impl {
     std::vector<rknn_tensor_attr> input_attributes;
     std::vector<rknn_tensor_attr> output_attributes;
     std::vector<std::uint8_t> rgb_input;
+    rga_buffer_handle_t rgb_input_handle = 0;
+    struct ImportedDmaBuffer {
+        rga_buffer_handle_t handle = 0;
+        std::size_t size = 0;
+    };
+    std::unordered_map<int, ImportedDmaBuffer> dma_buf_handles;
     bool initialized = false;
+
+    bool infer_source(rga_buffer_t source,
+                      bool source_uses_handle,
+                      std::uint32_t width,
+                      std::uint32_t height,
+                      PersonInferenceResult *result,
+                      std::string *error);
 };
 
 RknnPersonDetector::RknnPersonDetector(PersonDetectorConfig config)
@@ -214,40 +232,36 @@ bool RknnPersonDetector::initialize(std::string *error)
     return true;
 }
 
-bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
-                                    std::size_t size,
-                                    std::uint32_t width,
-                                    std::uint32_t height,
-                                    std::uint32_t bytes_per_line,
-                                    PersonInferenceResult *result,
-                                    std::string *error)
+bool RknnPersonDetector::Impl::infer_source(
+    rga_buffer_t source,
+    bool source_uses_handle,
+    std::uint32_t width,
+    std::uint32_t height,
+    PersonInferenceResult *result,
+    std::string *error)
 {
-    if (!impl_->initialized || data == nullptr || result == nullptr ||
-        bytes_per_line < width || height == 0U ||
-        bytes_per_line > std::numeric_limits<std::size_t>::max() / height ||
-        size < static_cast<std::size_t>(bytes_per_line) * height * 3U / 2U) {
-        if (error != nullptr)
-            *error = "invalid NV12 frame or uninitialized detector";
-        return false;
-    }
-
     const Clock::time_point total_begin = Clock::now();
     LetterboxTransform transform;
-    if (!make_letterbox_transform(width, height, impl_->info.model_width,
-                                  impl_->info.model_height,
-                                  impl_->config.rotation, &transform, error))
+    if (!make_letterbox_transform(width, height, info.model_width,
+                                  info.model_height, config.rotation,
+                                  &transform, error))
         return false;
 
-    std::fill(impl_->rgb_input.begin(), impl_->rgb_input.end(), 114U);
-    rga_buffer_t source = wrapbuffer_virtualaddr_t(
-        const_cast<std::uint8_t *>(data), static_cast<int>(width),
-        static_cast<int>(height), static_cast<int>(bytes_per_line),
-        static_cast<int>(height), RK_FORMAT_YCbCr_420_SP);
-    rga_buffer_t destination = wrapbuffer_virtualaddr_t(
-        impl_->rgb_input.data(), static_cast<int>(impl_->info.model_width),
-        static_cast<int>(impl_->info.model_height),
-        static_cast<int>(impl_->info.model_width),
-        static_cast<int>(impl_->info.model_height), RK_FORMAT_RGB_888);
+    std::fill(rgb_input.begin(), rgb_input.end(), 114U);
+    rga_buffer_t destination{};
+    if (source_uses_handle) {
+        destination = wrapbuffer_handle_t(
+            rgb_input_handle, static_cast<int>(info.model_width),
+            static_cast<int>(info.model_height),
+            static_cast<int>(info.model_width),
+            static_cast<int>(info.model_height), RK_FORMAT_RGB_888);
+    } else {
+        destination = wrapbuffer_virtualaddr_t(
+            rgb_input.data(), static_cast<int>(info.model_width),
+            static_cast<int>(info.model_height),
+            static_cast<int>(info.model_width),
+            static_cast<int>(info.model_height), RK_FORMAT_RGB_888);
+    }
     im_rect source_rect{0, 0, static_cast<int>(width),
                         static_cast<int>(height)};
     im_rect destination_rect{
@@ -255,7 +269,7 @@ bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
         static_cast<int>(transform.pad_top),
         static_cast<int>(transform.resized_width),
         static_cast<int>(transform.resized_height)};
-    const int usage = rga_rotation_usage(impl_->config.rotation);
+    const int usage = rga_rotation_usage(config.rotation);
     IM_STATUS rga_status = imcheck(source, destination, source_rect,
                                    destination_rect, usage);
     if (rga_status != IM_STATUS_NOERROR) {
@@ -277,27 +291,27 @@ bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
 
     rknn_input input{};
     input.index = 0;
-    input.buf = impl_->rgb_input.data();
-    input.size = static_cast<std::uint32_t>(impl_->rgb_input.size());
+    input.buf = rgb_input.data();
+    input.size = static_cast<std::uint32_t>(rgb_input.size());
     input.type = RKNN_TENSOR_UINT8;
     input.fmt = RKNN_TENSOR_NHWC;
     input.pass_through = 0;
-    int status = rknn_inputs_set(impl_->context, 1U, &input);
+    int status = rknn_inputs_set(context, 1U, &input);
     if (status < 0) {
         if (error != nullptr)
             *error = rknn_error("rknn_inputs_set", status);
         return false;
     }
 
-    std::vector<rknn_output> outputs(impl_->output_attributes.size());
+    std::vector<rknn_output> outputs(output_attributes.size());
     for (std::size_t index = 0; index < outputs.size(); ++index) {
         outputs[index].index = static_cast<std::uint32_t>(index);
         outputs[index].want_float = 0;
     }
     const Clock::time_point rknn_begin = Clock::now();
-    status = rknn_run(impl_->context, nullptr);
+    status = rknn_run(context, nullptr);
     if (status >= 0)
-        status = rknn_outputs_get(impl_->context,
+        status = rknn_outputs_get(context,
                                   static_cast<std::uint32_t>(outputs.size()),
                                   outputs.data(), nullptr);
     const Clock::time_point rknn_end = Clock::now();
@@ -310,7 +324,7 @@ bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
     std::vector<QuantizedYoloTensorView> views;
     views.reserve(outputs.size());
     for (std::size_t index = 0; index < outputs.size(); ++index) {
-        const rknn_tensor_attr &attribute = impl_->output_attributes[index];
+        const rknn_tensor_attr &attribute = output_attributes[index];
         QuantizedYoloTensorView view;
         view.data = static_cast<const std::int8_t *>(outputs[index].buf);
         view.size = outputs[index].size;
@@ -323,12 +337,12 @@ bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
     const Clock::time_point post_begin = Clock::now();
     std::vector<PersonDetection> detections;
     const bool decoded = decode_yolov5_person(
-        views, transform, impl_->config.confidence_threshold,
-        impl_->config.nms_threshold, impl_->config.maximum_detections,
+        views, transform, config.confidence_threshold,
+        config.nms_threshold, config.maximum_detections,
         &detections, error);
     const Clock::time_point post_end = Clock::now();
     const int release_status = rknn_outputs_release(
-        impl_->context, static_cast<std::uint32_t>(outputs.size()),
+        context, static_cast<std::uint32_t>(outputs.size()),
         outputs.data());
     if (!decoded)
         return false;
@@ -340,10 +354,93 @@ bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
 
     result->transform = transform;
     result->detections = std::move(detections);
+    result->timing.rga_import_ms = 0.0;
     result->timing.rga_ms = elapsed_ms(rga_begin, rga_end);
     result->timing.rknn_ms = elapsed_ms(rknn_begin, rknn_end);
     result->timing.postprocess_ms = elapsed_ms(post_begin, post_end);
     result->timing.total_ms = elapsed_ms(total_begin, Clock::now());
+    return true;
+}
+
+bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
+                                    std::size_t size,
+                                    std::uint32_t width,
+                                    std::uint32_t height,
+                                    std::uint32_t bytes_per_line,
+                                    PersonInferenceResult *result,
+                                    std::string *error)
+{
+    if (!impl_->initialized || data == nullptr || result == nullptr ||
+        bytes_per_line < width || height == 0U ||
+        bytes_per_line > std::numeric_limits<std::size_t>::max() / height ||
+        size < static_cast<std::size_t>(bytes_per_line) * height * 3U / 2U) {
+        if (error != nullptr)
+            *error = "invalid NV12 frame or uninitialized detector";
+        return false;
+    }
+    rga_buffer_t source = wrapbuffer_virtualaddr_t(
+        const_cast<std::uint8_t *>(data), static_cast<int>(width),
+        static_cast<int>(height), static_cast<int>(bytes_per_line),
+        static_cast<int>(height), RK_FORMAT_YCbCr_420_SP);
+    return impl_->infer_source(source, false, width, height, result, error);
+}
+
+bool RknnPersonDetector::infer_nv12_dmabuf(
+    int dma_buf_fd,
+    std::size_t size,
+    std::uint32_t width,
+    std::uint32_t height,
+    std::uint32_t bytes_per_line,
+    PersonInferenceResult *result,
+    std::string *error)
+{
+    if (!impl_->initialized || dma_buf_fd < 0 || result == nullptr ||
+        bytes_per_line < width || height == 0U ||
+        size > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
+        bytes_per_line > std::numeric_limits<std::size_t>::max() / height ||
+        size < static_cast<std::size_t>(bytes_per_line) * height * 3U / 2U) {
+        if (error != nullptr)
+            *error = "invalid NV12 DMA-BUF or uninitialized detector";
+        return false;
+    }
+
+    const Clock::time_point import_begin = Clock::now();
+    if (impl_->rgb_input_handle == 0) {
+        impl_->rgb_input_handle = importbuffer_virtualaddr(
+            impl_->rgb_input.data(), static_cast<int>(impl_->rgb_input.size()));
+        if (impl_->rgb_input_handle == 0) {
+            if (error != nullptr)
+                *error = "RGA importbuffer_virtualaddr destination failed";
+            return false;
+        }
+    }
+    auto found = impl_->dma_buf_handles.find(dma_buf_fd);
+    if (found == impl_->dma_buf_handles.end()) {
+        const rga_buffer_handle_t handle = importbuffer_fd(
+            dma_buf_fd, static_cast<int>(size));
+        if (handle == 0) {
+            if (error != nullptr)
+                *error = "RGA importbuffer_fd failed";
+            return false;
+        }
+        Impl::ImportedDmaBuffer imported;
+        imported.handle = handle;
+        imported.size = size;
+        found = impl_->dma_buf_handles.emplace(dma_buf_fd, imported).first;
+        ++impl_->info.dma_buf_import_count;
+    } else if (found->second.size != size) {
+        if (error != nullptr)
+            *error = "DMA-BUF fd was reused with a different size";
+        return false;
+    }
+    rga_buffer_t source = wrapbuffer_handle_t(
+        found->second.handle, static_cast<int>(width),
+        static_cast<int>(height), static_cast<int>(bytes_per_line),
+        static_cast<int>(height), RK_FORMAT_YCbCr_420_SP);
+    const Clock::time_point import_end = Clock::now();
+    if (!impl_->infer_source(source, true, width, height, result, error))
+        return false;
+    result->timing.rga_import_ms = elapsed_ms(import_begin, import_end);
     return true;
 }
 

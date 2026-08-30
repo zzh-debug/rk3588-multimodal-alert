@@ -16,9 +16,10 @@ struct VisibleFrameEvent {
     std::uint32_t flags = 0;
 };
 
-// Transient view of one dequeued NV12 buffer. The data pointer is valid only
-// while the VisibleCapture callback is running; callers that need to retain a
-// frame must copy it before returning.
+// View of one dequeued NV12 buffer. A plain run_frames() callback owns it only
+// for the callback duration. run_leased_frames() callers may retain the
+// VisibleFrameLease instead; the pointer and optional exported DMA-BUF fd stay
+// valid until that lease is released.
 struct VisibleFrameView {
     VisibleFrameEvent event;
     const std::uint8_t *data = nullptr;
@@ -26,6 +27,8 @@ struct VisibleFrameView {
     std::uint32_t width = 0;
     std::uint32_t height = 0;
     std::uint32_t bytes_per_line = 0;
+    std::uint32_t data_offset = 0;
+    int dma_buf_fd = -1;
 };
 
 struct ThermalFrameEvent {
