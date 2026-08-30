@@ -1,11 +1,12 @@
-Implementation commit: e45ec0b264b18cea3a05f7afd9b15270cfedcda9
+Supervisor implementation commit: e45ec0b264b18cea3a05f7afd9b15270cfedcda9
+Final board-test commit: 2c26c31d53032dc9c3a002c37707e49ac9b61e20
 Board: ATK-DLRK3588, aarch64
 Kernel: Linux 5.10.209 #14
 Rootfs: Buildroot 2021.11, NFS root
 MediaMTX: v1.7.0
 FFmpeg: 4.4.1
 Application binary SHA-256:
-be77c8af4c3213f183275b5c0de9da4a780ea0f077f8c01322a4aaa00026f927  /usr/bin/p2_multimodal_fusion
+5b5173f5bb044d9b3ed6aee1427947637143b1b12cfa5575a78462f6ec393649  /usr/bin/p2_multimodal_fusion
 MPP stream dependency SHA-256:
 9e832e8f5378a25e60343502438d35ad5ce0fa875bba77123c2e2f9d95168735  /usr/bin/p2_mpp_stream
 LED: /sys/class/leds/zzh:white:fill, safety limit 32/255

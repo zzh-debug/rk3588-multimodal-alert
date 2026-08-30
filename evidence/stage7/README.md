@@ -1,6 +1,7 @@
 # P2.7.1 整链可靠性板端证据（2026-08-30）
 
-本目录保存实现提交`e45ec0b264b18cea3a05f7afd9b15270cfedcda9`的60秒长稳、
+本目录保存supervisor实现提交`e45ec0b264b18cea3a05f7afd9b15270cfedcda9`、资源
+字段修正后的精确板测提交`2c26c31d53032dc9c3a002c37707e49ac9b61e20`的60秒长稳、
 supervisor恢复和资源摘要证据。P2.7整体仍保留“2小时长稳待确认”边界。
 
 | 路径 | 内容 |
@@ -20,8 +21,8 @@ supervisor恢复和资源摘要证据。P2.7整体仍保留“2小时长稳待�
 
 ## 结果
 
-- 60秒：1794帧编码、453对热融合、1794/1794 RTSP包，0队列淘汰、0发布失败，
-  端到端应用PASS；峰值VmPeak约582720 KB，结束RSS约35792 KB，线程2，fd33。
+- 60秒：1795帧编码、454对热融合、1795/1795 RTSP包，0队列淘汰、0发布失败，
+  端到端应用PASS；峰值VmPeak约640880 KB，结束RSS约35876 KB，线程2，fd33。
 - 杀业务app：supervisor `restart_count=1`，新业务和RTSP发布恢复，客户端成功读取。
 - 杀MediaMTX：应用安全报告Broken pipe并退出，supervisor `restart_count=2`，
   重建MediaMTX和业务，客户端恢复读取。

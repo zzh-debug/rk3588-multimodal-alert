@@ -1,27 +1,27 @@
-1970/01/01 00:54:56 INF MediaMTX v1.7.0
-1970/01/01 00:54:56 INF configuration loaded from /etc/mediamtx.yml
-1970/01/01 00:54:56 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
-1970/01/01 00:54:56 INF [RTMP] listener opened on :1935
-1970/01/01 00:54:56 INF [HLS] listener opened on :8888
-1970/01/01 00:54:56 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
-1970/01/01 00:54:56 INF [SRT] listener opened on :8890 (UDP)
-1970/01/01 00:54:57 INF [RTSP] [conn 127.0.0.1:55506] opened
-1970/01/01 00:54:57 INF [RTSP] [session 48194079] created by 127.0.0.1:55506
-1970/01/01 00:54:57 INF [RTSP] [session 48194079] is publishing to path 'p2', 1 track (H264)
-1970/01/01 00:55:00 INF [RTSP] [conn 127.0.0.1:55518] opened
-1970/01/01 00:55:00 INF [RTSP] [session cde471f8] created by 127.0.0.1:55518
-1970/01/01 00:55:00 INF [RTSP] [session cde471f8] is reading from path 'p2', with TCP, 1 track (H264)
-1970/01/01 00:55:04 INF [RTSP] [session cde471f8] destroyed: torn down by 127.0.0.1:55518
-1970/01/01 00:55:04 INF [RTSP] [conn 127.0.0.1:55518] closed: EOF
-1970/01/01 00:55:04 INF [RTSP] [session 48194079] destroyed: torn down by 127.0.0.1:55506
-1970/01/01 00:55:04 INF [RTSP] [conn 127.0.0.1:55506] closed: EOF
+1970/01/01 01:06:53 INF MediaMTX v1.7.0
+1970/01/01 01:06:53 INF configuration loaded from /etc/mediamtx.yml
+1970/01/01 01:06:53 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+1970/01/01 01:06:53 INF [RTMP] listener opened on :1935
+1970/01/01 01:06:53 INF [HLS] listener opened on :8888
+1970/01/01 01:06:53 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
+1970/01/01 01:06:53 INF [SRT] listener opened on :8890 (UDP)
+1970/01/01 01:06:54 INF [RTSP] [conn 127.0.0.1:49566] opened
+1970/01/01 01:06:54 INF [RTSP] [session c5c2eebe] created by 127.0.0.1:49566
+1970/01/01 01:06:54 INF [RTSP] [session c5c2eebe] is publishing to path 'p2', 1 track (H264)
+1970/01/01 01:06:57 INF [RTSP] [conn 127.0.0.1:49570] opened
+1970/01/01 01:06:57 INF [RTSP] [session ebdbfa38] created by 127.0.0.1:49570
+1970/01/01 01:06:57 INF [RTSP] [session ebdbfa38] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/01 01:07:00 INF [RTSP] [session ebdbfa38] destroyed: torn down by 127.0.0.1:49570
+1970/01/01 01:07:00 INF [RTSP] [conn 127.0.0.1:49570] closed: EOF
+1970/01/01 01:07:00 INF [RTSP] [session c5c2eebe] destroyed: torn down by 127.0.0.1:49566
+1970/01/01 01:07:00 INF [RTSP] [conn 127.0.0.1:49566] closed: EOF
 rga_api version 1.10.1_[1]
 {
   "schema": "p2.multimodal-fusion.v3",
   "result": "PASS",
   "error": "",
-  "application_commit": "e45ec0b264b1",
-  "elapsed_seconds": 6.676,
+  "application_commit": "2c26c31d5303",
+  "elapsed_seconds": 6.633,
   "visible_device": "/dev/video45",
   "thermal_device": "/dev/video0",
   "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
@@ -30,41 +30,41 @@ rga_api version 1.10.1_[1]
   "calibration": {"id": "gui-19700101-215303", "nominal_distance_mm": 1000.000, "fit_max_error_px": 146.693, "provisional": true},
   "fusion_config": {"hot_absolute_c": 30.000, "hot_delta_c": 4.000, "hot_min_pixels": 2, "mapping_margin_px": 240.000, "minimum_overlap": 0.100, "confirm_frames": 2, "release_frames": 3, "cooldown_ms": 1000},
   "visible_capture": {"dqbuf": 192, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0, "exported_dma_buffers": 6},
-  "thermal_capture": {"valid_pairs": 49, "sequence_gaps": 0, "invalid_payloads": 0, "timestamp_mismatches": 0},
+  "thermal_capture": {"valid_pairs": 48, "sequence_gaps": 0, "invalid_payloads": 0, "timestamp_mismatches": 0},
   "visible_queue": {"pushed": 192, "popped": 192, "drop_oldest": 0, "pending": 0},
-  "fusion_queue": {"pushed": 49, "popped": 49, "drop_oldest": 0, "pending": 0},
-  "streaming": {"enabled": true, "rtsp_url": "rtsp://127.0.0.1:8554/p2", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 192, "encoder_queue_popped": 192, "encoder_queue_drop_oldest": 0, "encoded_frames": 192, "encoded_bytes": 4801077, "key_frames": 4, "osd_frames": 192, "source_dma_buf_imports": 6, "average_rga_ms": 11.830, "average_mpp_ms": 4.993, "published_packets": 192, "publish_failures": 0},
+  "fusion_queue": {"pushed": 48, "popped": 48, "drop_oldest": 0, "pending": 0},
+  "streaming": {"enabled": true, "rtsp_url": "rtsp://127.0.0.1:8554/p2", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 192, "encoder_queue_popped": 192, "encoder_queue_drop_oldest": 0, "encoded_frames": 192, "encoded_bytes": 4838752, "key_frames": 4, "osd_frames": 192, "source_dma_buf_imports": 6, "average_rga_ms": 11.892, "average_mpp_ms": 4.982, "published_packets": 192, "publish_failures": 0},
   "illumination": {"enabled": false, "state": "OFF", "target_brightness": 32, "dark_p50_max": 60, "dark_p90_max": 110, "updates": 0, "transitions": 0, "activations": 0, "deactivations": 0, "faults": 0, "maximum_brightness": 0, "led_writes": 0, "led_failures": 0, "led_maximum_commanded": 0, "led_final_brightness": 0},
-  "process": {"peak_rss_kb": 582720, "final_rss_kb": 35560, "final_threads": 2, "open_fds": 33},
-  "temporal_join": {"visible_received": 192, "thermal_received": 49, "matched": 49, "unmatched_skew": 0, "emitted_pairs": 49, "missing_visible_results": 0, "missing_thermal_results": 0},
-  "processing": {"inference_frames": 192, "inference_failures": 0, "person_detections": 192, "thermal_frames": 49, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 49},
-  "fusion": {"processed_pairs": 49, "failures": 0, "evidence_frames": 49, "active_frames": 48, "activations": 1, "deactivations": 0, "people": 49, "hot_regions": 98, "matches": 49},
-  "latency": {"absolute_skew_p50_ms": 5.402, "absolute_skew_p95_ms": 16.187, "absolute_skew_max_ms": 16.674, "inference_total_p50_ms": 27.917, "inference_total_p95_ms": 37.312, "fusion_p50_ms": 0.174, "fusion_p95_ms": 0.393}
+  "process": {"peak_vm_kb": 582720, "final_rss_kb": 35784, "final_threads": 2, "open_fds": 33},
+  "temporal_join": {"visible_received": 192, "thermal_received": 48, "matched": 48, "unmatched_skew": 0, "emitted_pairs": 48, "missing_visible_results": 0, "missing_thermal_results": 0},
+  "processing": {"inference_frames": 192, "inference_failures": 0, "person_detections": 171, "thermal_frames": 48, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 48},
+  "fusion": {"processed_pairs": 48, "failures": 0, "evidence_frames": 36, "active_frames": 36, "activations": 2, "deactivations": 1, "people": 44, "hot_regions": 84, "matches": 36},
+  "latency": {"absolute_skew_p50_ms": 7.710, "absolute_skew_p95_ms": 15.010, "absolute_skew_max_ms": 16.434, "inference_total_p50_ms": 28.093, "inference_total_p95_ms": 37.483, "fusion_p50_ms": 0.160, "fusion_p95_ms": 0.498}
 }
-1970/01/01 00:55:06 INF MediaMTX v1.7.0
-1970/01/01 00:55:06 INF configuration loaded from /etc/mediamtx.yml
-1970/01/01 00:55:06 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
-1970/01/01 00:55:06 INF [RTMP] listener opened on :1935
-1970/01/01 00:55:06 INF [HLS] listener opened on :8888
-1970/01/01 00:55:06 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
-1970/01/01 00:55:06 INF [SRT] listener opened on :8890 (UDP)
-1970/01/01 00:55:07 INF [RTSP] [conn 127.0.0.1:51656] opened
-1970/01/01 00:55:07 INF [RTSP] [conn 127.0.0.1:51656] closed: no one is publishing to path 'p2'
-1970/01/01 00:55:07 INF [RTSP] [conn 127.0.0.1:51666] opened
-1970/01/01 00:55:07 INF [RTSP] [session b9654c52] created by 127.0.0.1:51666
-1970/01/01 00:55:07 INF [RTSP] [session b9654c52] is publishing to path 'p2', 1 track (H264)
-1970/01/01 00:55:08 INF [RTSP] [conn 127.0.0.1:51674] opened
-1970/01/01 00:55:08 INF [RTSP] [session da9fdf22] created by 127.0.0.1:51674
-1970/01/01 00:55:08 INF [RTSP] [session da9fdf22] is reading from path 'p2', with TCP, 1 track (H264)
-1970/01/01 00:55:12 INF [RTSP] [session da9fdf22] destroyed: torn down by 127.0.0.1:51674
-1970/01/01 00:55:12 INF [RTSP] [conn 127.0.0.1:51674] closed: EOF
+1970/01/01 01:07:02 INF MediaMTX v1.7.0
+1970/01/01 01:07:02 INF configuration loaded from /etc/mediamtx.yml
+1970/01/01 01:07:02 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+1970/01/01 01:07:02 INF [RTMP] listener opened on :1935
+1970/01/01 01:07:02 INF [HLS] listener opened on :8888
+1970/01/01 01:07:02 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
+1970/01/01 01:07:02 INF [SRT] listener opened on :8890 (UDP)
+1970/01/01 01:07:03 INF [RTSP] [conn 127.0.0.1:56234] opened
+1970/01/01 01:07:03 INF [RTSP] [conn 127.0.0.1:56234] closed: no one is publishing to path 'p2'
+1970/01/01 01:07:03 INF [RTSP] [conn 127.0.0.1:56244] opened
+1970/01/01 01:07:03 INF [RTSP] [session 0d242668] created by 127.0.0.1:56244
+1970/01/01 01:07:03 INF [RTSP] [session 0d242668] is publishing to path 'p2', 1 track (H264)
+1970/01/01 01:07:04 INF [RTSP] [conn 127.0.0.1:56248] opened
+1970/01/01 01:07:04 INF [RTSP] [session d0996574] created by 127.0.0.1:56248
+1970/01/01 01:07:04 INF [RTSP] [session d0996574] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/01 01:07:07 INF [RTSP] [session d0996574] destroyed: torn down by 127.0.0.1:56248
+1970/01/01 01:07:07 INF [RTSP] [conn 127.0.0.1:56248] closed: EOF
 rga_api version 1.10.1_[1]
 {
   "schema": "p2.multimodal-fusion.v3",
   "result": "FAIL",
   "error": "RTSP publish failed: RTSP packet publish failed: Broken pipe",
-  "application_commit": "e45ec0b264b1",
-  "elapsed_seconds": 4.786,
+  "application_commit": "2c26c31d5303",
+  "elapsed_seconds": 4.711,
   "visible_device": "/dev/video45",
   "thermal_device": "/dev/video0",
   "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
@@ -72,44 +72,44 @@ rga_api version 1.10.1_[1]
   "rknn_driver_version": "0.9.6",
   "calibration": {"id": "gui-19700101-215303", "nominal_distance_mm": 1000.000, "fit_max_error_px": 146.693, "provisional": true},
   "fusion_config": {"hot_absolute_c": 30.000, "hot_delta_c": 4.000, "hot_min_pixels": 2, "mapping_margin_px": 240.000, "minimum_overlap": 0.100, "confirm_frames": 2, "release_frames": 3, "cooldown_ms": 1000},
-  "visible_capture": {"dqbuf": 135, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0, "exported_dma_buffers": 6},
+  "visible_capture": {"dqbuf": 134, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_timestamp": 0, "exported_dma_buffers": 6},
   "thermal_capture": {"valid_pairs": 35, "sequence_gaps": 0, "invalid_payloads": 0, "timestamp_mismatches": 0},
-  "visible_queue": {"pushed": 135, "popped": 135, "drop_oldest": 0, "pending": 0},
+  "visible_queue": {"pushed": 134, "popped": 134, "drop_oldest": 0, "pending": 0},
   "fusion_queue": {"pushed": 35, "popped": 35, "drop_oldest": 0, "pending": 0},
-  "streaming": {"enabled": true, "rtsp_url": "rtsp://127.0.0.1:8554/p2", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 135, "encoder_queue_popped": 134, "encoder_queue_drop_oldest": 0, "encoded_frames": 134, "encoded_bytes": 3399633, "key_frames": 3, "osd_frames": 134, "source_dma_buf_imports": 6, "average_rga_ms": 11.409, "average_mpp_ms": 4.834, "published_packets": 133, "publish_failures": 1},
+  "streaming": {"enabled": true, "rtsp_url": "rtsp://127.0.0.1:8554/p2", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 134, "encoder_queue_popped": 133, "encoder_queue_drop_oldest": 0, "encoded_frames": 133, "encoded_bytes": 3400801, "key_frames": 3, "osd_frames": 133, "source_dma_buf_imports": 6, "average_rga_ms": 11.951, "average_mpp_ms": 4.896, "published_packets": 132, "publish_failures": 1},
   "illumination": {"enabled": false, "state": "OFF", "target_brightness": 32, "dark_p50_max": 60, "dark_p90_max": 110, "updates": 0, "transitions": 0, "activations": 0, "deactivations": 0, "faults": 0, "maximum_brightness": 0, "led_writes": 0, "led_failures": 0, "led_maximum_commanded": 0, "led_final_brightness": 0},
-  "process": {"peak_rss_kb": 582720, "final_rss_kb": 108332, "final_threads": 2, "open_fds": 40},
-  "temporal_join": {"visible_received": 135, "thermal_received": 35, "matched": 35, "unmatched_skew": 0, "emitted_pairs": 35, "missing_visible_results": 0, "missing_thermal_results": 0},
-  "processing": {"inference_frames": 135, "inference_failures": 0, "person_detections": 135, "thermal_frames": 35, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 35},
+  "process": {"peak_vm_kb": 582720, "final_rss_kb": 108220, "final_threads": 2, "open_fds": 40},
+  "temporal_join": {"visible_received": 134, "thermal_received": 35, "matched": 35, "unmatched_skew": 0, "emitted_pairs": 35, "missing_visible_results": 0, "missing_thermal_results": 0},
+  "processing": {"inference_frames": 134, "inference_failures": 0, "person_detections": 134, "thermal_frames": 35, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 35},
   "fusion": {"processed_pairs": 35, "failures": 0, "evidence_frames": 35, "active_frames": 34, "activations": 1, "deactivations": 0, "people": 35, "hot_regions": 70, "matches": 35},
-  "latency": {"absolute_skew_p50_ms": 7.842, "absolute_skew_p95_ms": 16.522, "absolute_skew_max_ms": 22.364, "inference_total_p50_ms": 28.205, "inference_total_p95_ms": 38.193, "fusion_p50_ms": 0.181, "fusion_p95_ms": 0.397}
+  "latency": {"absolute_skew_p50_ms": 8.573, "absolute_skew_p95_ms": 15.823, "absolute_skew_max_ms": 16.312, "inference_total_p50_ms": 27.811, "inference_total_p95_ms": 36.950, "fusion_p50_ms": 0.173, "fusion_p95_ms": 0.352}
 }
-1970/01/01 00:55:13 INF MediaMTX v1.7.0
-1970/01/01 00:55:13 INF configuration loaded from /etc/mediamtx.yml
-1970/01/01 00:55:13 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
-1970/01/01 00:55:13 INF [RTMP] listener opened on :1935
-1970/01/01 00:55:13 INF [HLS] listener opened on :8888
-1970/01/01 00:55:13 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
-1970/01/01 00:55:13 INF [SRT] listener opened on :8890 (UDP)
-1970/01/01 00:55:14 INF [RTSP] [conn 127.0.0.1:47060] opened
-1970/01/01 00:55:14 INF [RTSP] [conn 127.0.0.1:47060] closed: no one is publishing to path 'p2'
-1970/01/01 00:55:14 INF [RTSP] [conn 127.0.0.1:47068] opened
-1970/01/01 00:55:14 INF [RTSP] [session 3c930fd8] created by 127.0.0.1:47068
-1970/01/01 00:55:14 INF [RTSP] [session 3c930fd8] is publishing to path 'p2', 1 track (H264)
-1970/01/01 00:55:15 INF [RTSP] [conn 127.0.0.1:47082] opened
-1970/01/01 00:55:15 INF [RTSP] [session f4a4fbf7] created by 127.0.0.1:47082
-1970/01/01 00:55:15 INF [RTSP] [session f4a4fbf7] is reading from path 'p2', with TCP, 1 track (H264)
-1970/01/01 00:55:19 INF [RTSP] [session f4a4fbf7] destroyed: torn down by 127.0.0.1:47082
-1970/01/01 00:55:19 INF [RTSP] [conn 127.0.0.1:47082] closed: EOF
-1970/01/01 00:55:19 INF [RTSP] [session 3c930fd8] destroyed: torn down by 127.0.0.1:47068
-1970/01/01 00:55:19 INF [RTSP] [conn 127.0.0.1:47068] closed: EOF
+1970/01/01 01:07:09 INF MediaMTX v1.7.0
+1970/01/01 01:07:09 INF configuration loaded from /etc/mediamtx.yml
+1970/01/01 01:07:09 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+1970/01/01 01:07:09 INF [RTMP] listener opened on :1935
+1970/01/01 01:07:09 INF [HLS] listener opened on :8888
+1970/01/01 01:07:09 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
+1970/01/01 01:07:09 INF [SRT] listener opened on :8890 (UDP)
+1970/01/01 01:07:10 INF [RTSP] [conn 127.0.0.1:56256] opened
+1970/01/01 01:07:10 INF [RTSP] [conn 127.0.0.1:56256] closed: no one is publishing to path 'p2'
+1970/01/01 01:07:10 INF [RTSP] [conn 127.0.0.1:56266] opened
+1970/01/01 01:07:10 INF [RTSP] [session e83a04c7] created by 127.0.0.1:56266
+1970/01/01 01:07:10 INF [RTSP] [session e83a04c7] is publishing to path 'p2', 1 track (H264)
+1970/01/01 01:07:11 INF [RTSP] [conn 127.0.0.1:56274] opened
+1970/01/01 01:07:11 INF [RTSP] [session 69e9e816] created by 127.0.0.1:56274
+1970/01/01 01:07:11 INF [RTSP] [session 69e9e816] is reading from path 'p2', with TCP, 1 track (H264)
+1970/01/01 01:07:15 INF [RTSP] [session 69e9e816] destroyed: torn down by 127.0.0.1:56274
+1970/01/01 01:07:15 INF [RTSP] [conn 127.0.0.1:56274] closed: EOF
+1970/01/01 01:07:15 INF [RTSP] [session e83a04c7] destroyed: torn down by 127.0.0.1:56266
+1970/01/01 01:07:15 INF [RTSP] [conn 127.0.0.1:56266] closed: EOF
 rga_api version 1.10.1_[1]
 {
   "schema": "p2.multimodal-fusion.v3",
   "result": "PASS",
   "error": "",
-  "application_commit": "e45ec0b264b1",
-  "elapsed_seconds": 4.959,
+  "application_commit": "2c26c31d5303",
+  "elapsed_seconds": 4.902,
   "visible_device": "/dev/video45",
   "thermal_device": "/dev/video0",
   "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
@@ -121,11 +121,11 @@ rga_api version 1.10.1_[1]
   "thermal_capture": {"valid_pairs": 36, "sequence_gaps": 0, "invalid_payloads": 0, "timestamp_mismatches": 0},
   "visible_queue": {"pushed": 140, "popped": 140, "drop_oldest": 0, "pending": 0},
   "fusion_queue": {"pushed": 36, "popped": 36, "drop_oldest": 0, "pending": 0},
-  "streaming": {"enabled": true, "rtsp_url": "rtsp://127.0.0.1:8554/p2", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 140, "encoder_queue_popped": 140, "encoder_queue_drop_oldest": 0, "encoded_frames": 140, "encoded_bytes": 3501043, "key_frames": 3, "osd_frames": 140, "source_dma_buf_imports": 6, "average_rga_ms": 11.430, "average_mpp_ms": 4.820, "published_packets": 140, "publish_failures": 0},
+  "streaming": {"enabled": true, "rtsp_url": "rtsp://127.0.0.1:8554/p2", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 140, "encoder_queue_popped": 140, "encoder_queue_drop_oldest": 0, "encoded_frames": 140, "encoded_bytes": 3450714, "key_frames": 3, "osd_frames": 140, "source_dma_buf_imports": 6, "average_rga_ms": 12.347, "average_mpp_ms": 4.851, "published_packets": 140, "publish_failures": 0},
   "illumination": {"enabled": false, "state": "OFF", "target_brightness": 32, "dark_p50_max": 60, "dark_p90_max": 110, "updates": 0, "transitions": 0, "activations": 0, "deactivations": 0, "faults": 0, "maximum_brightness": 0, "led_writes": 0, "led_failures": 0, "led_maximum_commanded": 0, "led_final_brightness": 0},
-  "process": {"peak_rss_kb": 582720, "final_rss_kb": 36348, "final_threads": 2, "open_fds": 33},
+  "process": {"peak_vm_kb": 582720, "final_rss_kb": 35328, "final_threads": 2, "open_fds": 33},
   "temporal_join": {"visible_received": 140, "thermal_received": 36, "matched": 36, "unmatched_skew": 0, "emitted_pairs": 36, "missing_visible_results": 0, "missing_thermal_results": 0},
   "processing": {"inference_frames": 140, "inference_failures": 0, "person_detections": 140, "thermal_frames": 36, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 36},
-  "fusion": {"processed_pairs": 36, "failures": 0, "evidence_frames": 36, "active_frames": 35, "activations": 1, "deactivations": 0, "people": 36, "hot_regions": 72, "matches": 36},
-  "latency": {"absolute_skew_p50_ms": 9.902, "absolute_skew_p95_ms": 16.070, "absolute_skew_max_ms": 16.304, "inference_total_p50_ms": 28.043, "inference_total_p95_ms": 37.138, "fusion_p50_ms": 0.168, "fusion_p95_ms": 0.459}
+  "fusion": {"processed_pairs": 36, "failures": 0, "evidence_frames": 36, "active_frames": 35, "activations": 1, "deactivations": 0, "people": 36, "hot_regions": 76, "matches": 36},
+  "latency": {"absolute_skew_p50_ms": 8.908, "absolute_skew_p95_ms": 15.772, "absolute_skew_max_ms": 16.614, "inference_total_p50_ms": 27.441, "inference_total_p95_ms": 36.695, "fusion_p50_ms": 0.171, "fusion_p95_ms": 0.354}
 }

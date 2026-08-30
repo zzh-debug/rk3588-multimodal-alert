@@ -2,8 +2,8 @@
   "schema": "p2.multimodal-fusion.v3",
   "result": "PASS",
   "error": "",
-  "application_commit": "e45ec0b264b1",
-  "elapsed_seconds": 20.120,
+  "application_commit": "2c26c31d5303",
+  "elapsed_seconds": 20.098,
   "visible_device": "/dev/video45",
   "thermal_device": "/dev/video0",
   "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
@@ -17,9 +17,9 @@
   "fusion_queue": {"pushed": 152, "popped": 152, "drop_oldest": 0, "pending": 0},
   "streaming": {"enabled": false, "rtsp_url": "", "output_width": 1080, "output_height": 1920, "bitrate_bps": 6000000, "encoder_queue_pushed": 0, "encoder_queue_popped": 0, "encoder_queue_drop_oldest": 0, "encoded_frames": 0, "encoded_bytes": 0, "key_frames": 0, "osd_frames": 0, "source_dma_buf_imports": 0, "average_rga_ms": 0.000, "average_mpp_ms": 0.000, "published_packets": 0, "publish_failures": 0},
   "illumination": {"enabled": false, "state": "OFF", "target_brightness": 32, "dark_p50_max": 60, "dark_p90_max": 110, "updates": 0, "transitions": 0, "activations": 0, "deactivations": 0, "faults": 0, "maximum_brightness": 0, "led_writes": 0, "led_failures": 0, "led_maximum_commanded": 0, "led_final_brightness": 0},
-  "process": {"peak_rss_kb": 366356, "final_rss_kb": 32144, "final_threads": 1, "open_fds": 20},
+  "process": {"peak_vm_kb": 431892, "final_rss_kb": 32180, "final_threads": 1, "open_fds": 20},
   "temporal_join": {"visible_received": 594, "thermal_received": 152, "matched": 152, "unmatched_skew": 0, "emitted_pairs": 152, "missing_visible_results": 0, "missing_thermal_results": 0},
-  "processing": {"inference_frames": 594, "inference_failures": 0, "person_detections": 472, "thermal_frames": 152, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 152},
-  "fusion": {"processed_pairs": 152, "failures": 0, "evidence_frames": 111, "active_frames": 111, "activations": 2, "deactivations": 1, "people": 121, "hot_regions": 272, "matches": 111},
-  "latency": {"absolute_skew_p50_ms": 6.958, "absolute_skew_p95_ms": 15.814, "absolute_skew_max_ms": 16.336, "inference_total_p50_ms": 30.188, "inference_total_p95_ms": 36.711, "fusion_p50_ms": 0.109, "fusion_p95_ms": 0.439}
+  "processing": {"inference_frames": 594, "inference_failures": 0, "person_detections": 540, "thermal_frames": 152, "math_failures": 0, "filter_failures": 0, "repaired_nonfinite_temperature_pixels": 0, "repaired_nonfinite_image_pixels": 0, "filter_accepted_frames": 152},
+  "fusion": {"processed_pairs": 152, "failures": 0, "evidence_frames": 106, "active_frames": 106, "activations": 4, "deactivations": 3, "people": 135, "hot_regions": 275, "matches": 106},
+  "latency": {"absolute_skew_p50_ms": 8.011, "absolute_skew_p95_ms": 15.792, "absolute_skew_max_ms": 16.518, "inference_total_p50_ms": 27.459, "inference_total_p95_ms": 33.259, "fusion_p50_ms": 0.098, "fusion_p95_ms": 0.451}
 }
