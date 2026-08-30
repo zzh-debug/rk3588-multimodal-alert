@@ -24,6 +24,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#include <dirent.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -111,6 +112,13 @@ struct FusionStats {
     std::uint64_t total_matches = 0;
     std::vector<double> absolute_skew_ms;
     std::vector<double> fusion_ms;
+};
+
+struct ProcessRuntimeStats {
+    std::uint64_t peak_rss_kb = 0;
+    std::uint64_t final_rss_kb = 0;
+    std::uint64_t final_threads = 0;
+    std::uint64_t open_fds = 0;
 };
 
 struct OverlayState {
@@ -385,6 +393,35 @@ double maximum(const std::vector<double> &values)
                           : *std::max_element(values.begin(), values.end());
 }
 
+ProcessRuntimeStats sample_process_runtime()
+{
+    ProcessRuntimeStats stats;
+    std::ifstream status("/proc/self/status");
+    std::string line;
+    while (std::getline(status, line)) {
+        std::istringstream input(line);
+        std::string key;
+        std::uint64_t value = 0;
+        if (!(input >> key >> value))
+            continue;
+        if (key == "VmPeak:")
+            stats.peak_rss_kb = value;
+        else if (key == "VmRSS:")
+            stats.final_rss_kb = value;
+        else if (key == "Threads:")
+            stats.final_threads = value;
+    }
+    DIR *directory = opendir("/proc/self/fd");
+    if (directory != nullptr) {
+        while (readdir(directory) != nullptr)
+            ++stats.open_fds;
+        closedir(directory);
+        if (stats.open_fds >= 2U)
+            stats.open_fds -= 2U;
+    }
+    return stats;
+}
+
 std::string json_escape(const std::string &value)
 {
     std::string escaped;
@@ -419,6 +456,7 @@ void write_summary(
     const p2::IlluminationStats &illumination,
     const p2::PwmLedStats &led,
     p2::IlluminationState illumination_state,
+    const ProcessRuntimeStats &process,
     double elapsed_seconds, bool passed, const std::string &error)
 {
     const bool streaming_enabled = !options.rtsp_url.empty() ||
@@ -538,6 +576,11 @@ void write_summary(
            << led.maximum_commanded
            << ", \"led_final_brightness\": "
            << led.final_brightness << "},\n"
+           << "  \"process\": {\"peak_rss_kb\": "
+           << process.peak_rss_kb << ", \"final_rss_kb\": "
+           << process.final_rss_kb << ", \"final_threads\": "
+           << process.final_threads << ", \"open_fds\": "
+           << process.open_fds << "},\n"
            << "  \"temporal_join\": {\"visible_received\": "
            << joiner.synchronizer.visible_received
            << ", \"thermal_received\": "
@@ -1175,6 +1218,7 @@ int main(int argc, char **argv)
          illumination_stats.faults == 0U && led_stats.failures == 0U &&
          led_stats.final_brightness == 0U);
     const bool final_passed = passed && illumination_passed;
+    const ProcessRuntimeStats process_stats = sample_process_runtime();
 
     write_summary(std::cout, options, calibration, runtime,
                   visible_capture_stats, thermal_capture_stats,
@@ -1183,6 +1227,7 @@ int main(int argc, char **argv)
                   filter.stats(), inference_stats, thermal_stats,
                   fusion_stats, encoder_stats, publisher_stats,
                   illumination_stats, led_stats, illumination_state,
+                  process_stats,
                   elapsed_seconds, final_passed, error);
     std::ofstream summary(options.summary_json);
     if (!summary) {
@@ -1197,6 +1242,7 @@ int main(int argc, char **argv)
                   filter.stats(), inference_stats, thermal_stats,
                   fusion_stats, encoder_stats, publisher_stats,
                   illumination_stats, led_stats, illumination_state,
+                  process_stats,
                   elapsed_seconds, final_passed, error);
     return final_passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }
