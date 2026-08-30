@@ -7,6 +7,9 @@
 #include "p2/fusion/temporal_joiner.hpp"
 #include "p2/inference/person_detector.hpp"
 #include "p2/pipeline/bounded_queue.hpp"
+#include "p2/streaming/mpp_h264_encoder.hpp"
+#include "p2/streaming/rtsp_publisher.hpp"
+#include "p2/streaming/video_overlay.hpp"
 #include "p2/thermal/mlx90640_math.hpp"
 #include "p2/thermal/temporal_filter.hpp"
 
@@ -24,7 +27,9 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <utility>
@@ -51,6 +56,8 @@ struct Options {
     std::string calibration = "/etc/p2/cross_spectral_calibration.conf";
     std::string summary_json = "/tmp/p2-fusion-summary.json";
     std::string event_csv = "/tmp/p2-fusion-events.csv";
+    std::string rtsp_url;
+    std::string h264_output;
     std::uint64_t duration_seconds = 30;
     std::uint64_t maximum_pairs = 0;
     p2::ImageRotation rotation = p2::ImageRotation::kClockwise270;
@@ -64,6 +71,8 @@ struct Options {
     std::uint64_t filter_reset_gap_ms = 1000;
     std::uint64_t lookahead_ms = 20;
     std::uint64_t maximum_skew_ms = 50;
+    std::uint64_t overlay_ttl_ms = 1000;
+    std::uint32_t stream_bitrate_bps = 6'000'000;
 };
 
 struct InferenceStats {
@@ -95,6 +104,11 @@ struct FusionStats {
     std::vector<double> fusion_ms;
 };
 
+struct OverlayState {
+    p2::VideoOverlay overlay;
+    std::uint64_t visible_timestamp_ns = 0;
+};
+
 void signal_handler(int)
 {
     g_stop.store(true);
@@ -123,6 +137,10 @@ void usage(const char *program)
         << "  --cooldown-ms N             reactivation cooldown, default 1000\n"
         << "  --lookahead-ms N            temporal lookahead, default 20\n"
         << "  --max-skew-ms N             temporal gate, default 50\n"
+        << "  --rtsp-url URL              enable MPP/OSD RTSP publishing\n"
+        << "  --h264-output FILE          optional Annex-B evidence file\n"
+        << "  --stream-bitrate-bps N      H.264 target, default 6000000\n"
+        << "  --overlay-ttl-ms N          latest-result lifetime, default 1000\n"
         << "  --summary FILE              summary JSON output\n"
         << "  --events FILE               per-pair CSV output\n"
         << "  --help                      show this text\n";
@@ -175,6 +193,10 @@ bool parse_options(int argc, char **argv, Options *options)
             options->summary_json = value;
         else if (argument == "--events")
             options->event_csv = value;
+        else if (argument == "--rtsp-url")
+            options->rtsp_url = value;
+        else if (argument == "--h264-output")
+            options->h264_output = value;
         else if (argument == "--rotation") {
             if (!p2::parse_image_rotation(value, &options->rotation))
                 return false;
@@ -237,6 +259,16 @@ bool parse_options(int argc, char **argv, Options *options)
         } else if (argument == "--max-skew-ms") {
             if (!parse_u64(value, &options->maximum_skew_ms))
                 return false;
+        } else if (argument == "--overlay-ttl-ms") {
+            if (!parse_u64(value, &options->overlay_ttl_ms))
+                return false;
+        } else if (argument == "--stream-bitrate-bps") {
+            std::uint64_t parsed = 0;
+            if (!parse_u64(value, &parsed) || parsed == 0U ||
+                parsed > std::numeric_limits<std::uint32_t>::max())
+                return false;
+            options->stream_bitrate_bps =
+                static_cast<std::uint32_t>(parsed);
         } else {
             return false;
         }
@@ -257,7 +289,8 @@ bool parse_options(int argc, char **argv, Options *options)
         options->fusion.minimum_thermal_overlap <= 1.0 &&
         options->debounce.confirmation_frames > 0 &&
         options->debounce.release_frames > 0 &&
-        options->lookahead_ms <= 1000 && options->maximum_skew_ms <= 1000;
+        options->lookahead_ms <= 1000 && options->maximum_skew_ms <= 1000 &&
+        options->overlay_ttl_ms > 0 && options->overlay_ttl_ms <= 10'000;
 }
 
 bool read_file(const std::string &path, std::vector<std::uint8_t> *bytes)
@@ -308,17 +341,24 @@ void write_summary(
     const p2::VisibleCaptureStats &visible_capture,
     const p2::ThermalCaptureStats &thermal_capture,
     const p2::BoundedQueueStats &visible_queue,
+    const p2::BoundedQueueStats &encoder_queue,
     const p2::BoundedQueueStats &fusion_queue,
     const p2::TemporalFusionJoinerStats &joiner,
     const p2::ThermalTemporalFilterStats &filter,
     const InferenceStats &inference,
     const ThermalProcessingStats &thermal,
     const FusionStats &fusion,
+    const p2::MppH264EncoderStats &encoder,
+    const p2::RtspPublisherStats &publisher,
     double elapsed_seconds, bool passed, const std::string &error)
 {
+    const bool streaming_enabled = !options.rtsp_url.empty() ||
+        !options.h264_output.empty();
+    const double encoded_frames =
+        static_cast<double>(encoder.encoded_frames);
     output << std::fixed << std::setprecision(3)
            << "{\n"
-           << "  \"schema\": \"p2.multimodal-fusion.v1\",\n"
+           << "  \"schema\": \"p2.multimodal-fusion.v2\",\n"
            << "  \"result\": \"" << (passed ? "PASS" : "FAIL")
            << "\",\n"
            << "  \"error\": \"" << json_escape(error) << "\",\n"
@@ -383,6 +423,29 @@ void write_summary(
            << fusion_queue.popped << ", \"drop_oldest\": "
            << fusion_queue.dropped_oldest << ", \"pending\": "
            << fusion_queue.pending << "},\n"
+           << "  \"streaming\": {\"enabled\": "
+           << (streaming_enabled ? "true" : "false")
+           << ", \"rtsp_url\": \"" << json_escape(options.rtsp_url)
+           << "\", \"output_width\": 1080, \"output_height\": 1920, "
+              "\"bitrate_bps\": " << options.stream_bitrate_bps
+           << ", \"encoder_queue_pushed\": " << encoder_queue.pushed
+           << ", \"encoder_queue_popped\": " << encoder_queue.popped
+           << ", \"encoder_queue_drop_oldest\": "
+           << encoder_queue.dropped_oldest
+           << ", \"encoded_frames\": " << encoder.encoded_frames
+           << ", \"encoded_bytes\": " << encoder.encoded_bytes
+           << ", \"key_frames\": " << encoder.key_frames
+           << ", \"osd_frames\": " << encoder.osd_frames
+           << ", \"source_dma_buf_imports\": "
+           << encoder.source_dma_buf_imports
+           << ", \"average_rga_ms\": "
+           << (encoded_frames == 0.0 ? 0.0 :
+               encoder.rga_total_ms / encoded_frames)
+           << ", \"average_mpp_ms\": "
+           << (encoded_frames == 0.0 ? 0.0 :
+               encoder.mpp_total_ms / encoded_frames)
+           << ", \"published_packets\": " << publisher.packets
+           << ", \"publish_failures\": " << publisher.failures << "},\n"
            << "  \"temporal_join\": {\"visible_received\": "
            << joiner.synchronizer.visible_received
            << ", \"thermal_received\": "
@@ -486,6 +549,47 @@ int main(int argc, char **argv)
     }
     const p2::PersonDetectorRuntimeInfo runtime = detector.runtime_info();
 
+    const bool streaming_enabled = !options.rtsp_url.empty() ||
+        !options.h264_output.empty();
+    std::unique_ptr<p2::MppH264Encoder> encoder;
+    std::unique_ptr<p2::RtspPublisher> publisher;
+    std::ofstream h264_output;
+    if (streaming_enabled) {
+        p2::MppH264EncoderConfig encoder_config;
+        encoder_config.bitrate_bps = options.stream_bitrate_bps;
+        encoder_config.rotation = options.rotation;
+        encoder = std::make_unique<p2::MppH264Encoder>(encoder_config);
+        if (!encoder->initialize(&error)) {
+            std::cerr << "stream encoder initialization failed: "
+                      << error << '\n';
+            return EXIT_FAILURE;
+        }
+        if (!options.rtsp_url.empty()) {
+            p2::RtspPublisherConfig publisher_config;
+            publisher_config.url = options.rtsp_url;
+            publisher = std::make_unique<p2::RtspPublisher>(
+                publisher_config);
+            if (!publisher->connect(encoder->codec_header(), &error)) {
+                std::cerr << "RTSP publisher connection failed: "
+                          << error << '\n';
+                return EXIT_FAILURE;
+            }
+        }
+        if (!options.h264_output.empty()) {
+            h264_output.open(options.h264_output, std::ios::binary);
+            if (!h264_output) {
+                std::cerr << "failed to open H.264 output "
+                          << options.h264_output << '\n';
+                return EXIT_FAILURE;
+            }
+            const std::vector<std::uint8_t> &header =
+                encoder->codec_header();
+            h264_output.write(
+                reinterpret_cast<const char *>(header.data()),
+                static_cast<std::streamsize>(header.size()));
+        }
+    }
+
     std::ofstream events(options.event_csv);
     if (!events) {
         std::cerr << "failed to open event CSV " << options.event_csv << '\n';
@@ -511,7 +615,9 @@ int main(int argc, char **argv)
         options.maximum_skew_ms * 1'000'000ULL;
     p2::TemporalFusionJoiner joiner(joiner_config);
     p2::AlertDebouncer debouncer(options.debounce);
-    p2::BoundedLatestQueue<p2::VisibleFrameLease> visible_queue(1);
+    using SharedVisibleLease = std::shared_ptr<p2::VisibleFrameLease>;
+    p2::BoundedLatestQueue<SharedVisibleLease> visible_queue(1);
+    p2::BoundedLatestQueue<SharedVisibleLease> encoder_queue(1);
     p2::BoundedLatestQueue<p2::FusionInputPair> fusion_queue(8);
     p2::VisibleCapture visible_capture({
         options.visible, 3840, 2160, kCaptureBufferCount, 500, true,
@@ -520,6 +626,10 @@ int main(int argc, char **argv)
     InferenceStats inference_stats;
     ThermalProcessingStats thermal_stats;
     FusionStats fusion_stats;
+    OverlayState latest_overlay;
+    latest_overlay.overlay.banner = "P2 MONITOR";
+    latest_overlay.overlay.banner_color = p2::OverlayColor::green;
+    std::mutex overlay_mutex;
     std::mutex failure_mutex;
     std::string failure;
     const std::uint64_t started_ns = p2::monotonic_now_ns();
@@ -557,19 +667,28 @@ int main(int argc, char **argv)
                     g_stop.store(true);
                     return;
                 }
-                if (!visible_queue.push(std::move(lease)))
+                SharedVisibleLease shared =
+                    std::make_shared<p2::VisibleFrameLease>(
+                        std::move(lease));
+                if (!visible_queue.push(shared)) {
                     set_failure("visible queue closed during capture");
+                    return;
+                }
+                if (streaming_enabled &&
+                    !encoder_queue.push(std::move(shared)))
+                    set_failure("encoder queue closed during capture");
             },
             &capture_error);
         if (!visible_capture_ok)
             set_failure("visible capture failed: " + capture_error);
         visible_queue.close(false);
+        encoder_queue.close(false);
     });
 
     std::thread inference_thread([&]() {
-        p2::VisibleFrameLease lease;
+        SharedVisibleLease lease;
         while (visible_queue.wait_pop(&lease)) {
-            const p2::VisibleFrameView &frame = lease.view();
+            const p2::VisibleFrameView &frame = lease->view();
             p2::PersonInferenceResult result;
             std::string inference_error;
             if (frame.data_offset != 0U || frame.dma_buf_fd < 0 ||
@@ -594,6 +713,64 @@ int main(int argc, char **argv)
         }
         lease.reset();
     });
+
+    std::thread encoder_thread;
+    if (streaming_enabled) {
+        encoder_thread = std::thread([&]() {
+            SharedVisibleLease lease;
+            while (encoder_queue.wait_pop(&lease)) {
+                const p2::VisibleFrameView &frame = lease->view();
+                OverlayState snapshot;
+                {
+                    std::lock_guard<std::mutex> lock(overlay_mutex);
+                    snapshot = latest_overlay;
+                }
+                const std::uint64_t ttl_ns =
+                    options.overlay_ttl_ms * 1'000'000ULL;
+                if (snapshot.visible_timestamp_ns == 0U ||
+                    frame.event.timestamp_ns <
+                        snapshot.visible_timestamp_ns ||
+                    frame.event.timestamp_ns -
+                        snapshot.visible_timestamp_ns > ttl_ns) {
+                    snapshot.overlay = {};
+                    snapshot.overlay.banner = "P2 MONITOR";
+                    snapshot.overlay.banner_color =
+                        p2::OverlayColor::green;
+                }
+                p2::EncodedH264Packet packet;
+                std::string stream_error;
+                if (frame.data_offset != 0U || frame.dma_buf_fd < 0 ||
+                    !encoder->encode_nv12_dmabuf(
+                        frame.dma_buf_fd, frame.size,
+                        frame.width, frame.height,
+                        frame.bytes_per_line, frame.event.timestamp_ns,
+                        snapshot.overlay, &packet, &stream_error)) {
+                    set_failure("MPP stream encode failed: " +
+                                stream_error);
+                    lease.reset();
+                    break;
+                }
+                lease.reset();
+                if (h264_output) {
+                    h264_output.write(
+                        reinterpret_cast<const char *>(
+                            packet.bytes.data()),
+                        static_cast<std::streamsize>(
+                            packet.bytes.size()));
+                    if (!h264_output) {
+                        set_failure("H.264 evidence write failed");
+                        break;
+                    }
+                }
+                if (publisher != nullptr &&
+                    !publisher->publish(packet, &stream_error)) {
+                    set_failure("RTSP publish failed: " + stream_error);
+                    break;
+                }
+            }
+            lease.reset();
+        });
+    }
 
     std::thread thermal_thread([&]() {
         std::string capture_error;
@@ -640,6 +817,8 @@ int main(int argc, char **argv)
     std::thread supervisor([&]() {
         visible_thread.join();
         inference_thread.join();
+        if (encoder_thread.joinable())
+            encoder_thread.join();
         thermal_thread.join();
         enqueue_pairs(joiner.flush());
         fusion_queue.close(false);
@@ -665,6 +844,37 @@ int main(int argc, char **argv)
             ++fusion_stats.failures;
             set_failure("alert debounce failed: " + fusion_error);
             continue;
+        }
+        if (streaming_enabled) {
+            OverlayState next_overlay;
+            next_overlay.visible_timestamp_ns =
+                pair.visible.event.timestamp_ns;
+            std::vector<float> matched_temperatures(
+                pair.visible.detections.size(),
+                std::numeric_limits<float>::quiet_NaN());
+            for (const p2::PersonThermalMatch &match : result.matches) {
+                if (match.person_index < matched_temperatures.size() &&
+                    (!std::isfinite(
+                         matched_temperatures[match.person_index]) ||
+                     match.max_temperature_c >
+                         matched_temperatures[match.person_index]))
+                    matched_temperatures[match.person_index] =
+                        match.max_temperature_c;
+            }
+            if (!p2::make_person_video_overlay(
+                    pair.visible.detections, matched_temperatures,
+                    alert.active, 3840, 2160, 1080, 1920,
+                    options.rotation, &next_overlay.overlay,
+                    &fusion_error)) {
+                ++fusion_stats.failures;
+                set_failure("video overlay construction failed: " +
+                            fusion_error);
+                continue;
+            }
+            {
+                std::lock_guard<std::mutex> lock(overlay_mutex);
+                latest_overlay = std::move(next_overlay);
+            }
         }
         const double fusion_ms = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - fusion_started).count();
@@ -706,6 +916,13 @@ int main(int argc, char **argv)
             g_stop.store(true);
     }
     supervisor.join();
+    if (publisher != nullptr)
+        publisher->close();
+    if (h264_output) {
+        h264_output.flush();
+        if (!h264_output)
+            set_failure("H.264 evidence flush failed");
+    }
     const double elapsed_seconds = static_cast<double>(
         p2::monotonic_now_ns() - started_ns) / 1.0e9;
     {
@@ -717,6 +934,12 @@ int main(int argc, char **argv)
     const p2::ThermalCaptureStats thermal_capture_stats =
         thermal_capture.stats();
     const p2::TemporalFusionJoinerStats joiner_stats = joiner.stats();
+    const p2::MppH264EncoderStats encoder_stats =
+        encoder != nullptr ? encoder->stats()
+                           : p2::MppH264EncoderStats{};
+    const p2::RtspPublisherStats publisher_stats =
+        publisher != nullptr ? publisher->stats()
+                             : p2::RtspPublisherStats{};
     const bool passed = error.empty() && visible_capture_ok &&
         thermal_capture_ok && fusion_stats.pairs > 0 &&
         inference_stats.failures == 0 && thermal_stats.math_failures == 0 &&
@@ -726,13 +949,21 @@ int main(int argc, char **argv)
         thermal_capture_stats.invalid_payloads == 0 &&
         thermal_capture_stats.timestamp_mismatches == 0 &&
         joiner_stats.missing_visible_results == 0 &&
-        joiner_stats.missing_thermal_results == 0;
+        joiner_stats.missing_thermal_results == 0 &&
+        (!streaming_enabled ||
+         (encoder_stats.encoded_frames > 0U &&
+          encoder_stats.osd_frames == encoder_stats.encoded_frames &&
+          (publisher == nullptr ||
+           (publisher_stats.packets == encoder_stats.encoded_frames &&
+            publisher_stats.failures == 0U))));
 
     write_summary(std::cout, options, calibration, runtime,
                   visible_capture_stats, thermal_capture_stats,
-                  visible_queue.stats(), fusion_queue.stats(), joiner_stats,
+                  visible_queue.stats(), encoder_queue.stats(),
+                  fusion_queue.stats(), joiner_stats,
                   filter.stats(), inference_stats, thermal_stats,
-                  fusion_stats, elapsed_seconds, passed, error);
+                  fusion_stats, encoder_stats, publisher_stats,
+                  elapsed_seconds, passed, error);
     std::ofstream summary(options.summary_json);
     if (!summary) {
         std::cerr << "failed to open summary JSON " << options.summary_json
@@ -741,8 +972,10 @@ int main(int argc, char **argv)
     }
     write_summary(summary, options, calibration, runtime,
                   visible_capture_stats, thermal_capture_stats,
-                  visible_queue.stats(), fusion_queue.stats(), joiner_stats,
+                  visible_queue.stats(), encoder_queue.stats(),
+                  fusion_queue.stats(), joiner_stats,
                   filter.stats(), inference_stats, thermal_stats,
-                  fusion_stats, elapsed_seconds, passed, error);
+                  fusion_stats, encoder_stats, publisher_stats,
+                  elapsed_seconds, passed, error);
     return passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }

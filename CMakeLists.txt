@@ -52,6 +52,14 @@ target_compile_options(p2_inference_math PRIVATE
     -Wall -Wextra -Wpedantic -Werror
 )
 
+add_library(p2_streaming_geometry STATIC
+    src/streaming/video_overlay.cpp
+)
+target_include_directories(p2_streaming_geometry PUBLIC include)
+target_compile_options(p2_streaming_geometry PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)
+
 add_library(p2_person_evaluation STATIC
     src/evaluation/person_dataset.cpp
     src/evaluation/person_metrics.cpp
@@ -213,6 +221,13 @@ if(BUILD_TESTING)
         -Wall -Wextra -Wpedantic -Werror
     )
     add_test(NAME multimodal_fusion COMMAND test_multimodal_fusion)
+
+    add_executable(test_video_overlay tests/test_video_overlay.cpp)
+    target_link_libraries(test_video_overlay PRIVATE p2_streaming_geometry)
+    target_compile_options(test_video_overlay PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+    add_test(NAME video_overlay_geometry COMMAND test_video_overlay)
     set(P2_STAGE2_GOLDEN_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/evidence/stage2/2026-08-27/raw"
         CACHE PATH "Private P2.2 golden input directory")
@@ -248,6 +263,37 @@ if(P2_BUILD_HARDWARE)
         REQUIRED
     )
     find_library(P2_RGA_LIBRARY NAMES rga REQUIRED)
+    find_path(P2_MPP_INCLUDE_DIR rk_mpi.h
+        PATH_SUFFIXES rockchip
+        REQUIRED
+    )
+    find_library(P2_MPP_LIBRARY NAMES rockchip_mpp REQUIRED)
+    find_path(P2_AVFORMAT_INCLUDE_DIR libavformat/avformat.h REQUIRED)
+    find_library(P2_AVFORMAT_LIBRARY NAMES avformat REQUIRED)
+    find_library(P2_AVCODEC_LIBRARY NAMES avcodec REQUIRED)
+    find_library(P2_AVUTIL_LIBRARY NAMES avutil REQUIRED)
+
+    add_library(p2_streaming STATIC
+        src/streaming/mpp_h264_encoder.cpp
+        src/streaming/rtsp_publisher.cpp
+    )
+    target_include_directories(p2_streaming PUBLIC include)
+    target_include_directories(p2_streaming SYSTEM PRIVATE
+        "${P2_MPP_INCLUDE_DIR}"
+        "${P2_RGA_INCLUDE_DIR}"
+        "${P2_AVFORMAT_INCLUDE_DIR}"
+    )
+    target_link_libraries(p2_streaming PUBLIC p2_streaming_geometry)
+    target_link_libraries(p2_streaming PRIVATE
+        "${P2_MPP_LIBRARY}"
+        "${P2_RGA_LIBRARY}"
+        "${P2_AVFORMAT_LIBRARY}"
+        "${P2_AVCODEC_LIBRARY}"
+        "${P2_AVUTIL_LIBRARY}"
+    )
+    target_compile_options(p2_streaming PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
 
     add_library(p2_person_detector STATIC
         src/inference/rknn_person_detector.cpp
@@ -404,6 +450,25 @@ if(P2_BUILD_HARDWARE)
         -Wall -Wextra -Wpedantic -Werror
     )
 
+    add_executable(p2_mpp_stream
+        app/p2_mpp_stream.cpp
+        src/capture/device_discovery.cpp
+        src/capture/visible_capture.cpp
+    )
+    target_include_directories(p2_mpp_stream PRIVATE include)
+    target_include_directories(p2_mpp_stream SYSTEM PRIVATE
+        "${CAMERA_BSP_ROOT}/include/uapi"
+    )
+    target_link_libraries(p2_mpp_stream PRIVATE
+        p2_streaming Threads::Threads
+    )
+    target_compile_definitions(p2_mpp_stream PRIVATE
+        P2_GIT_COMMIT="${P2_GIT_COMMIT}"
+    )
+    target_compile_options(p2_mpp_stream PRIVATE
+        -Wall -Wextra -Wpedantic -Werror
+    )
+
     add_executable(p2_multimodal_fusion
         app/p2_multimodal_fusion.cpp
         src/capture/device_discovery.cpp
@@ -415,7 +480,7 @@ if(P2_BUILD_HARDWARE)
         "${CAMERA_BSP_ROOT}/include/uapi"
     )
     target_link_libraries(p2_multimodal_fusion PRIVATE
-        p2_fusion p2_person_detector p2_thermal Threads::Threads
+        p2_fusion p2_person_detector p2_streaming p2_thermal Threads::Threads
     )
     target_compile_definitions(p2_multimodal_fusion PRIVATE
         P2_GIT_COMMIT="${P2_GIT_COMMIT}"
@@ -463,6 +528,7 @@ if(P2_BUILD_HARDWARE)
         p2_calibration_fit
         p2_person_detect
         p2_person_detect_async
+        p2_mpp_stream
         p2_multimodal_fusion
         p2_person_detect_nv12
         p2_person_dataset_capture
