@@ -17,6 +17,7 @@ struct PersonDetectorConfig {
     float confidence_threshold = 0.25F;
     float nms_threshold = 0.45F;
     std::size_t maximum_detections = 64;
+    bool use_io_mem = false;
 };
 
 struct PersonDetectorRuntimeInfo {
@@ -28,6 +29,10 @@ struct PersonDetectorRuntimeInfo {
     std::uint32_t input_count = 0;
     std::uint32_t output_count = 0;
     std::uint64_t dma_buf_import_count = 0;
+    bool io_mem_enabled = false;
+    std::uint32_t input_width_stride = 0;
+    std::uint32_t input_size_with_stride = 0;
+    bool input_non_cacheable = false;
 };
 
 struct PersonInferenceTiming {

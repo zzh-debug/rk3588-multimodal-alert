@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -37,6 +38,7 @@ struct Options {
     std::string json_output;
     std::string detection_csv;
     std::string source_memory = "dmabuf";
+    std::string rknn_input = "io-mem";
     std::uint64_t duration_seconds = 60;
     std::uint64_t maximum_frames = 0;
     std::uint64_t warmup_frames = 10;
@@ -83,6 +85,7 @@ void usage(const char *program)
         << "  --warmup N           warm-up frames excluded from timing, default 10\n"
         << "  --queue-capacity N   drop-oldest queue size, 1..4, default 1\n"
         << "  --source-memory M    mmap or dmabuf; default dmabuf\n"
+        << "  --rknn-input M       inputs-set or io-mem; default io-mem\n"
         << "  --verify-source N   compare dmabuf/mmap results for N frames\n"
         << "  --rotation VALUE     0, 90cw, 180 or 270cw; default 270cw\n"
         << "  --confidence VALUE   person confidence threshold, default 0.25\n"
@@ -135,6 +138,8 @@ bool parse_options(int argc, char **argv, Options *options)
             options->detection_csv = value;
         else if (argument == "--source-memory")
             options->source_memory = value;
+        else if (argument == "--rknn-input")
+            options->rknn_input = value;
         else if (argument == "--duration-sec") {
             if (!parse_u64(value, &options->duration_seconds) ||
                 options->duration_seconds == 0)
@@ -169,6 +174,10 @@ bool parse_options(int argc, char **argv, Options *options)
     return !options->model.empty() &&
         (options->source_memory == "mmap" ||
          options->source_memory == "dmabuf") &&
+        (options->rknn_input == "inputs-set" ||
+         options->rknn_input == "io-mem") &&
+        (options->source_memory == "dmabuf" ||
+         options->rknn_input == "inputs-set") &&
         (options->source_memory == "dmabuf" ||
          options->source_equivalence_frames == 0U) &&
         options->duration_seconds <= 86400U &&
@@ -266,7 +275,8 @@ void write_summary(std::ostream &output,
            << "\", \"application_full_frame_cpu_copies\": 0, "
               "\"dmabuf_source\": "
            << (options.source_memory == "dmabuf" ? "true" : "false")
-           << ", \"end_to_end_zero_copy\": false},\n"
+           << ", \"rknn_input\": \"" << options.rknn_input
+           << "\", \"end_to_end_zero_copy\": false},\n"
            << "  \"capture\": {\"width\": " << capture.width
            << ", \"height\": " << capture.height
            << ", \"bytes_per_line\": " << capture.bytes_per_line
@@ -319,6 +329,13 @@ void write_summary(std::ostream &output,
            << ",\n"
            << "  \"rga_dmabuf_import_count\": "
            << runtime.dma_buf_import_count << ",\n"
+           << "  \"rknn_io_mem\": {\"enabled\": "
+           << (runtime.io_mem_enabled ? "true" : "false")
+           << ", \"width_stride\": " << runtime.input_width_stride
+           << ", \"size_with_stride\": "
+           << runtime.input_size_with_stride << ", \"non_cacheable\": "
+           << (runtime.input_non_cacheable ? "true" : "false")
+           << "},\n"
            << "  \"latency\": {\n";
     write_latency_json(output, "queue_age", stats.queue_age_ms, true);
     write_latency_json(output, "rga_dmabuf_import", stats.rga_import_ms,
@@ -355,16 +372,30 @@ int main(int argc, char **argv)
     detector_config.rotation = options.rotation;
     detector_config.confidence_threshold = options.confidence_threshold;
     detector_config.nms_threshold = options.nms_threshold;
+    detector_config.use_io_mem = options.rknn_input == "io-mem";
     p2::RknnPersonDetector detector(detector_config);
     if (!detector.initialize(&error)) {
         std::cerr << "detector initialization failed: " << error << '\n';
         return EXIT_FAILURE;
     }
     const p2::PersonDetectorRuntimeInfo &runtime = detector.runtime_info();
+    std::unique_ptr<p2::RknnPersonDetector> verification_detector;
+    if (options.source_equivalence_frames != 0U) {
+        p2::PersonDetectorConfig verification_config = detector_config;
+        verification_config.use_io_mem = false;
+        verification_detector.reset(
+            new p2::RknnPersonDetector(verification_config));
+        if (!verification_detector->initialize(&error)) {
+            std::cerr << "verification detector initialization failed: "
+                      << error << '\n';
+            return EXIT_FAILURE;
+        }
+    }
     std::cout << "P2.4 async person detector: visible=" << options.visible
               << " queue_capacity=" << options.queue_capacity
               << " rotation=" << p2::image_rotation_name(options.rotation)
               << " source_memory=" << options.source_memory
+              << " rknn_input=" << options.rknn_input
               << " transport=V4L2_MMAP_buffer_lease"
               << " full_frame_cpu_copies=0\n";
 
@@ -440,7 +471,7 @@ int main(int argc, char **argv)
                                         options.source_equivalence_frames) {
                     p2::PersonInferenceResult mmap_result;
                     std::string mmap_error;
-                    if (!detector.infer_nv12(
+                    if (!verification_detector->infer_nv12(
                             frame.data, frame.size, frame.width, frame.height,
                             frame.bytes_per_line, &mmap_result, &mmap_error)) {
                         inference_error =

@@ -79,6 +79,10 @@ struct RknnPersonDetector::Impl {
             releasebuffer_handle(entry.second.handle);
         if (rgb_input_handle != 0)
             releasebuffer_handle(rgb_input_handle);
+        if (io_input_rga_handle != 0)
+            releasebuffer_handle(io_input_rga_handle);
+        if (io_input_mem != nullptr)
+            rknn_destroy_mem(context, io_input_mem);
         if (context != 0)
             rknn_destroy(context);
     }
@@ -90,6 +94,8 @@ struct RknnPersonDetector::Impl {
     std::vector<rknn_tensor_attr> output_attributes;
     std::vector<std::uint8_t> rgb_input;
     rga_buffer_handle_t rgb_input_handle = 0;
+    rknn_tensor_mem *io_input_mem = nullptr;
+    rga_buffer_handle_t io_input_rga_handle = 0;
     struct ImportedDmaBuffer {
         rga_buffer_handle_t handle = 0;
         std::size_t size = 0;
@@ -227,7 +233,52 @@ bool RknnPersonDetector::initialize(std::string *error)
     const std::size_t input_bytes =
         static_cast<std::size_t>(impl_->info.model_width) *
         impl_->info.model_height * impl_->info.model_channels;
-    impl_->rgb_input.assign(input_bytes, 114U);
+    if (impl_->config.use_io_mem) {
+        rknn_tensor_attr &io_input = impl_->input_attributes.front();
+        io_input.type = RKNN_TENSOR_UINT8;
+        io_input.fmt = RKNN_TENSOR_NHWC;
+        io_input.pass_through = 0;
+        io_input.h_stride = 0;
+        const std::uint32_t allocation_size = io_input.size_with_stride != 0U
+            ? io_input.size_with_stride
+            : static_cast<std::uint32_t>(input_bytes);
+        impl_->io_input_mem = rknn_create_mem2(
+            impl_->context, allocation_size,
+            RKNN_FLAG_MEMORY_NON_CACHEABLE);
+        if (impl_->io_input_mem == nullptr) {
+            if (error != nullptr)
+                *error = "rknn_create_mem input failed";
+            return false;
+        }
+        impl_->io_input_rga_handle = importbuffer_fd(
+            impl_->io_input_mem->fd,
+            static_cast<int>(impl_->io_input_mem->size));
+        if (impl_->io_input_rga_handle == 0) {
+            if (error != nullptr)
+                *error = "RGA import RKNN input fd failed";
+            return false;
+        }
+        std::memset(impl_->io_input_mem->virt_addr, 114,
+                    impl_->io_input_mem->size);
+        status = rknn_set_io_mem(impl_->context, impl_->io_input_mem,
+                                 &io_input);
+        if (status < 0) {
+            if (error != nullptr)
+                *error = rknn_error("rknn_set_io_mem input", status);
+            return false;
+        }
+        impl_->info.io_mem_enabled = true;
+        impl_->info.input_width_stride = io_input.w_stride != 0U
+            ? io_input.w_stride
+            : impl_->info.model_width;
+        impl_->info.input_size_with_stride = allocation_size;
+        impl_->info.input_non_cacheable = true;
+    } else {
+        impl_->rgb_input.assign(input_bytes, 114U);
+        impl_->info.input_width_stride = impl_->info.model_width;
+        impl_->info.input_size_with_stride =
+            static_cast<std::uint32_t>(input_bytes);
+    }
     impl_->initialized = true;
     return true;
 }
@@ -247,9 +298,16 @@ bool RknnPersonDetector::Impl::infer_source(
                                   &transform, error))
         return false;
 
-    std::fill(rgb_input.begin(), rgb_input.end(), 114U);
+    if (!config.use_io_mem)
+        std::fill(rgb_input.begin(), rgb_input.end(), 114U);
     rga_buffer_t destination{};
-    if (source_uses_handle) {
+    if (config.use_io_mem) {
+        destination = wrapbuffer_handle_t(
+            io_input_rga_handle, static_cast<int>(info.model_width),
+            static_cast<int>(info.model_height),
+            static_cast<int>(info.input_width_stride),
+            static_cast<int>(info.model_height), RK_FORMAT_RGB_888);
+    } else if (source_uses_handle) {
         destination = wrapbuffer_handle_t(
             rgb_input_handle, static_cast<int>(info.model_width),
             static_cast<int>(info.model_height),
@@ -289,18 +347,21 @@ bool RknnPersonDetector::Impl::infer_source(
         return false;
     }
 
-    rknn_input input{};
-    input.index = 0;
-    input.buf = rgb_input.data();
-    input.size = static_cast<std::uint32_t>(rgb_input.size());
-    input.type = RKNN_TENSOR_UINT8;
-    input.fmt = RKNN_TENSOR_NHWC;
-    input.pass_through = 0;
-    int status = rknn_inputs_set(context, 1U, &input);
-    if (status < 0) {
-        if (error != nullptr)
-            *error = rknn_error("rknn_inputs_set", status);
-        return false;
+    int status = 0;
+    if (!config.use_io_mem) {
+        rknn_input input{};
+        input.index = 0;
+        input.buf = rgb_input.data();
+        input.size = static_cast<std::uint32_t>(rgb_input.size());
+        input.type = RKNN_TENSOR_UINT8;
+        input.fmt = RKNN_TENSOR_NHWC;
+        input.pass_through = 0;
+        status = rknn_inputs_set(context, 1U, &input);
+        if (status < 0) {
+            if (error != nullptr)
+                *error = rknn_error("rknn_inputs_set", status);
+            return false;
+        }
     }
 
     std::vector<rknn_output> outputs(output_attributes.size());
@@ -370,7 +431,8 @@ bool RknnPersonDetector::infer_nv12(const std::uint8_t *data,
                                     PersonInferenceResult *result,
                                     std::string *error)
 {
-    if (!impl_->initialized || data == nullptr || result == nullptr ||
+    if (!impl_->initialized || impl_->config.use_io_mem || data == nullptr ||
+        result == nullptr ||
         bytes_per_line < width || height == 0U ||
         bytes_per_line > std::numeric_limits<std::size_t>::max() / height ||
         size < static_cast<std::size_t>(bytes_per_line) * height * 3U / 2U) {
@@ -405,7 +467,7 @@ bool RknnPersonDetector::infer_nv12_dmabuf(
     }
 
     const Clock::time_point import_begin = Clock::now();
-    if (impl_->rgb_input_handle == 0) {
+    if (!impl_->config.use_io_mem && impl_->rgb_input_handle == 0) {
         impl_->rgb_input_handle = importbuffer_virtualaddr(
             impl_->rgb_input.data(), static_cast<int>(impl_->rgb_input.size()));
         if (impl_->rgb_input_handle == 0) {
