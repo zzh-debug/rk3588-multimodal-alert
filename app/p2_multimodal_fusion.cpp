@@ -751,7 +751,7 @@ int main(int argc, char **argv)
                     break;
                 }
                 lease.reset();
-                if (h264_output) {
+                if (h264_output.is_open()) {
                     h264_output.write(
                         reinterpret_cast<const char *>(
                             packet.bytes.data()),
@@ -918,7 +918,7 @@ int main(int argc, char **argv)
     supervisor.join();
     if (publisher != nullptr)
         publisher->close();
-    if (h264_output) {
+    if (h264_output.is_open()) {
         h264_output.flush();
         if (!h264_output)
             set_failure("H.264 evidence flush failed");

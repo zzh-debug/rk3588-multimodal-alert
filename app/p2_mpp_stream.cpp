@@ -264,9 +264,14 @@ int main(int argc, char **argv)
             break;
         }
         lease.reset();
-        if (h264)
+        if (h264.is_open()) {
             h264.write(reinterpret_cast<const char *>(packet.bytes.data()),
                        static_cast<std::streamsize>(packet.bytes.size()));
+            if (!h264) {
+                set_failure("H.264 evidence write failed");
+                break;
+            }
+        }
         if (publish_enabled && !publisher.publish(packet, &error)) {
             set_failure(error);
             break;
