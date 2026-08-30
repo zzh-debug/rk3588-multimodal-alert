@@ -1,0 +1,32 @@
+{
+  "application_commit": "54ee771ae96a-dirty",
+  "visible_device": "/dev/video45",
+  "model_path": "/usr/share/p2/models/yolov5s-640-640.rknn",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rotation": "270cw",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "transport": {"capture_memory": "V4L2_MMAP", "handoff": "buffer_lease", "rga_source": "MMAP_virtual_address", "application_full_frame_cpu_copies": 0, "dmabuf_source": false, "end_to_end_zero_copy": false},
+  "capture": {"width": 3840, "height": 2160, "bytes_per_line": 3840, "allocated_buffers": 6, "lease_high_watermark": 3, "exported_dma_buffers": 0, "dqbuf_count": 446, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_monotonic_timestamp": 0},
+  "queue": {"capacity": 1, "pushed": 445, "popped": 409, "controlled_drop_oldest": 35, "shutdown_drops": 1, "closed_rejections": 1, "high_watermark": 1, "pending": 0},
+  "processed_sequence_gaps": {"events": 35, "frames": 35},
+  "run_elapsed_seconds": 15.086,
+  "capture_fps": 29.564,
+  "inference_frames": 409,
+  "warmup_frames": 5,
+  "measured_frames": 404,
+  "measured_elapsed_seconds": 14.601,
+  "measured_fps": 27.669,
+  "frames_with_person": 404,
+  "person_detections": 404,
+  "rga_dmabuf_import_count": 0,
+  "latency": {
+    "queue_age": {"p50_ms": 16.734, "p95_ms": 30.914, "p99_ms": 34.588, "max_ms": 36.620},
+    "rga_dmabuf_import": {"p50_ms": 0.000, "p95_ms": 0.000, "p99_ms": 0.000, "max_ms": 0.000},
+    "rga": {"p50_ms": 11.588, "p95_ms": 15.254, "p99_ms": 16.076, "max_ms": 17.248},
+    "rknn": {"p50_ms": 21.643, "p95_ms": 24.884, "p99_ms": 25.869, "max_ms": 30.613},
+    "postprocess": {"p50_ms": 0.689, "p95_ms": 1.955, "p99_ms": 2.703, "max_ms": 3.765},
+    "inference_total": {"p50_ms": 34.702, "p95_ms": 40.461, "p99_ms": 41.428, "max_ms": 45.091},
+    "capture_to_inference_end": {"p50_ms": 51.171, "p95_ms": 67.825, "p99_ms": 72.848, "max_ms": 76.388}
+  }
+}

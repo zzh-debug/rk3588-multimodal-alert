@@ -1,0 +1,33 @@
+{
+  "application_commit": "1ed71fd650db",
+  "visible_device": "/dev/video45",
+  "model_path": "/usr/share/p2/models/yolov5s-640-640.rknn",
+  "model_sha256_expected": "7c6b801de602b8aaa72269fab8daab21810418a4b01c8e8995313916e278fe71",
+  "rotation": "270cw",
+  "rknn_api_version": "2.0.0b0 (35a6907d79@2024-03-24T10:31:14)",
+  "rknn_driver_version": "0.9.6",
+  "transport": {"capture_memory": "V4L2_MMAP", "handoff": "buffer_lease", "rga_source": "V4L2_EXPBUF_importbuffer_fd", "application_full_frame_cpu_copies": 0, "dmabuf_source": true, "end_to_end_zero_copy": false},
+  "capture": {"width": 3840, "height": 2160, "bytes_per_line": 3840, "allocated_buffers": 6, "lease_high_watermark": 2, "exported_dma_buffers": 6, "dqbuf_count": 1796, "sequence_gaps": 0, "bad_bytes_used": 0, "missing_monotonic_timestamp": 0},
+  "queue": {"capacity": 1, "pushed": 1795, "popped": 1795, "controlled_drop_oldest": 0, "shutdown_drops": 0, "closed_rejections": 1, "high_watermark": 1, "pending": 0},
+  "processed_sequence_gaps": {"events": 0, "frames": 0},
+  "source_equivalence": {"requested": 0, "checks": 0, "mismatches": 0},
+  "run_elapsed_seconds": 60.052,
+  "capture_fps": 29.908,
+  "inference_frames": 1795,
+  "warmup_frames": 10,
+  "measured_frames": 1785,
+  "measured_elapsed_seconds": 59.462,
+  "measured_fps": 30.019,
+  "frames_with_person": 581,
+  "person_detections": 581,
+  "rga_dmabuf_import_count": 6,
+  "latency": {
+    "queue_age": {"p50_ms": 0.072, "p95_ms": 4.530, "p99_ms": 10.699, "max_ms": 22.648},
+    "rga_dmabuf_import": {"p50_ms": 0.002, "p95_ms": 0.004, "p99_ms": 0.004, "max_ms": 0.032},
+    "rga": {"p50_ms": 6.957, "p95_ms": 7.265, "p99_ms": 7.432, "max_ms": 7.825},
+    "rknn": {"p50_ms": 20.606, "p95_ms": 25.108, "p99_ms": 26.096, "max_ms": 27.903},
+    "postprocess": {"p50_ms": 0.337, "p95_ms": 1.554, "p99_ms": 1.811, "max_ms": 3.799},
+    "inference_total": {"p50_ms": 28.847, "p95_ms": 34.700, "p99_ms": 35.816, "max_ms": 37.432},
+    "capture_to_inference_end": {"p50_ms": 29.957, "p95_ms": 36.131, "p99_ms": 41.994, "max_ms": 53.243}
+  }
+}
